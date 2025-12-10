@@ -1,0 +1,3000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>TCMS</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- MarkerCluster -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+<!-- SheetJS (Excel) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- jsPDF (PDF) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<!-- PDF.js (text extraction & canvas rendering) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.min.js"></script>
+
+<!-- Tesseract.js (browser OCR) -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+
+
+<style>
+  :root{
+    --left-w: 270px;
+    --details-w: 300px;
+    --accent: #2e8b57;
+    --muted: #6b7280;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  html,body{height:100%;margin:0;color:#111827;background:#f3f4f6}
+  /* TOP nav - equal spaced items */
+.topbar {
+    height:64px;
+    background:#0A2A6A;
+    display:flex;
+    align-items:center;
+    gap:60px; 
+    padding:0 10px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+    position:relative;
+    z-index:1200;
+}
+  .brand {font-weight:700; width:160px;}
+
+.logo-left,
+.logo-right {
+    height: 85%;      /* LOGO AUTO SCALE — adjust % if needed */
+    max-height: 100px; /* Prevent too large */
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+/* --- MODERN PREMIUM TOPBAR --- */
+.topnav {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+    padding: 0;   /* buttons move more left */
+}
+
+.topnav button {
+    position: relative;
+    background: none;
+    border: none;
+    padding: 6px 2px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    color: #e6e6e6;                   /* faded black */
+    transition: color 0.25s ease;
+}
+
+/* Hover effect */
+.topnav button:hover { color: #ffffff; }
+/* Active (selected page) */
+.topnav button.active { color: #ffffff; font-weight: 600; }
+.topnav button::after { content: ""; position: absolute; bottom: -3px; left: 0; width: 0%; height: 2px; background: #000; transition: width 0.25s ease; }
+.topnav button.active::after { width: 100%; }
+
+  .container {display:flex; height:calc(100vh - 64px); position:relative;}
+
+  /* left list */
+  .left {
+    width: var(--left-w);
+    background: linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%);
+    border-right: 1px solid #e6e6e6;
+    display: flex;
+    flex-direction: column;
+    padding: 14px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+  .controlsRow {display:flex; gap:8px; margin-bottom:10px; align-items:center;}
+  .search {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #c0d4e0;  /* softer border */
+    background: linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%);
+}
+
+  .small {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #c0d4e0;
+    background: linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%);
+    cursor: pointer;
+}
+
+  .list {overflow:auto; flex:1; margin-top:8px; padding-right:2px;}
+.card {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 12px 4px;      /* cleaner spacing */
+    border-radius:8px;       /* rounded corners */
+    background: #ffff;
+    border: none;
+
+    border-bottom: 2px solid #b9c9d6; /* ← bottom line */
+    margin-bottom: 0;       /* remove gap, line handles separation */
+    cursor: pointer;
+}
+
+
+.card:hover {
+    background: rgba(255, 255, 255, 0.52) !important;
+}
+
+
+  .thumb {width:70px; height:40px; border-radius:6px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700}
+  .meta {flex:1}
+  .meta .title{font-weight:700}
+  .meta .sub{font-size:12px; color:var(--muted); margin-top:6px}
+  .meta .bottom{display:flex; justify-content:space-between; margin-top:8px; font-size:12px; color:#000}
+  .pager {display:flex; gap:6px; align-items:center; padding:10px 0; justify-content:center}
+ .pager button {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #c0d4e0;
+    background: linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%);
+    cursor: pointer;
+}
+
+
+  /* map area */
+  .mapwrap{flex:1; position:relative}
+  #map{position:absolute; inset:0; z-index:1}
+
+  /* move layer control under zoom */
+  .leaflet-control-layers { margin-top: 90px !important; } /* adjust if needed */
+
+  /* details panel */
+  .details {width:var(--details-w); background:linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%); border-left:1px solid #e6e6e6; padding:14px; box-sizing:border-box; display:flex; flex-direction:column}
+  .details .head {display:flex; justify-content:space-between; align-items:center}
+  .details .hide {padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; cursor:pointer}
+  .dbody {margin-top:10px; overflow:auto; flex:1}
+  .drow {margin-bottom:12px}
+  .dlabel{color:var(--muted); font-size:12px; margin-bottom:6px}
+  .actions {display:flex; gap:8px; margin-top:8px}
+  .btn {padding:8px 12px; border-radius:8px; cursor:pointer}
+  .btn.primary {background:var(--accent); color:white; border:none}
+  .btn.ghost {background:#fff; border:1px solid #e5e7eb}
+
+  /* modal */
+  .modal-back {position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.35); z-index:12000}
+  .modal {width:820px; max-width:95%; background:linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%); border-radius:8px; padding:18px; box-sizing:border-box}
+  .form-row{display:flex; gap:8px; margin-bottom:10px}
+  .form-row input, select, textarea{flex:1; padding:10px; border-radius:8px; border:1px solid #e5e7eb}
+  .file-row{display:flex; gap:8px; margin-top:8px; align-items:center}
+
+  /* management / operators panels */
+  .panel-wrap { position:absolute; inset:72px 12px 12px 12px; background:#ffff; z-index:50; display:none; }
+  .panel { background:linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%); border-radius:10px; padding:16px; box-shadow:0 10px 40px rgba(2,6,23,0.06); height:calc(100% - 24px); overflow:auto; }
+  .panel-header { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap;}
+  .panel .actions-right { margin-left:auto; display:flex; gap:8px; align-items:center; }
+
+  .table { width:100%; border-collapse:collapse; }
+  .table th { padding:15px; border-bottom:2px solid #f1f5f9; text-align:center; font-size:15px }
+.table td { padding:5px; border-bottom:1px solid #f1f5f9; text-align:center; font-size:13px }
+  .card-form { background:linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%); padding:12px; border-radius:10px; margin-bottom:12px; }
+
+  /* small helpers */
+  .muted{color:var(--muted)}
+  .badge { padding:6px 8px; border-radius:6px; font-weight:700; color:linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%);; font-size:12px }
+
+  @media(max-width:1000px){ .details{display:none} .left{width:260px} .topnav{display:none} }
+img {
+            image-rendering: auto;
+        }
+/* Make checkbox checkmark BLACK instead of blue */
+input[type="checkbox"] {
+    accent-color: black;
+}
+
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: nowrap !important; /* prevent buttons from wrapping */
+}
+
+/* LEFT SIDE filters container */
+.filters-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Make search box larger */
+.filters-left .search {
+    width: 260px;
+}
+
+/* RIGHT SIDE action buttons */
+.actions-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: nowrap;
+}
+.label-box {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.label-box label {
+    font-size: 12px;
+    margin-bottom: 4px;
+    color: #444;
+}
+.leaflet-control-attribution::after {
+    content: " | Designed & Developed By Engr. Farrukh Ishfaq";
+    font-weight: bold;
+}
+/* visually indicate disabled date/inputs */
+input[disabled], select[disabled] {
+    background: #f3f4f6;    /* light gray */
+    color: #6b7280;         /* muted text */
+    cursor: not-allowed;
+    opacity: 1;             /* keep full opacity, only change bg/text */
+}
+
+/* REPORTS DROPDOWN */
+.dropdown {
+    position: relative;
+}
+
+.dropbtn {
+    background: none;
+    border: none;
+    font-size: 15px;
+    cursor: pointer;
+    color: #e6e6e6;
+    padding: 6px 2px;
+}
+
+.dropdown:hover .dropbtn {
+    color: linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%);;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 28px;
+    left: 0;
+    background-color: #fff;
+    min-width: 220px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    z-index: 9999;
+}
+
+.dropdown-content a {
+    display: block;
+    padding: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #333;
+}
+
+.dropdown-content a:hover {
+    background: #f5f5f5;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+.dropdown-content a.active {
+    color: #000 !important;
+    font-weight: 600;
+    position: relative;
+}
+
+.dropdown-content a.active::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    height: 2px;
+    width: 100%;
+    background: #000;
+}
+table {
+    border-top: 0px solid white !important;
+    margin-top: 5px;
+    background: white; /* only table bg stays white */
+}
+table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border-radius: 12px !important; /* ← rounded edges */
+    overflow: hidden !important;    /* ← keeps header & rows clipped to radius */
+}
+table thead th {
+    background: #0A2A6A !important;
+    color: #ffffff !important;
+}
+.tipBox {
+    background: transparent;
+    padding: 8px 14px;
+    border-left: transparent; /* Trojan blue */
+    border-radius: 6px;
+    font-size: 14px;
+    color: #333;
+}
+
+
+
+
+
+
+
+</style>
+</head>
+<body>
+<!-- TOPBAR -->
+<div class="topbar">
+<img src="TCMS_Logo.jpg" class="logo-left">
+  
+  <div class="topnav">
+    <button id="navLive" class="active">Live Trace</button>
+<button id="">Dashboard</button>
+    <button id="navMgmt">Tower Crane Management</button>
+    <button id="navOps">Operator/Employee List</button>
+<button id="navMaintenance">Maintenance</button>
+
+<div class="dropdown">
+    <button class="dropbtn" id="navReports">Reports ▾</button>
+
+    <div class="dropdown-content">
+        <a id="rep_tc_thirdparty">Tower Crane Third Party</a>
+
+        <a id="rep_op_thirdparty">Operator Third Party</a>
+        <a id="rep_inspection">Inspection Report</a>
+        <a id="rep_op_status">Operator OverStay Report</a>
+    </div>
+</div>
+
+<button id="">Alerts</button>
+<button id="">Alerts Config</button>
+<button id="">Admin</button>
+
+  </div>
+  <div style="width:160px; text-align:right; color:var(--muted)">User: Admin</div>
+ <img src="NPClogo.png" class="logo-right">
+</div>
+
+<div class="container">
+  <!-- LEFT SIDEBAR -->
+  <div class="left" id="leftPanel">
+<div class="controlsRow">
+  <select id="filterStatus" class="small" style="width:48%;">
+    <option value="">All status</option><option>Working</option><option>Idle</option><option>Maintenance</option>
+  </select>
+
+  <select id="filterType" class="small" style="width:48%;">
+    <option value="">All Types</option>
+    <option value="tower crane">Tower Crane</option>
+    <option value="passenger hoist">Passenger Hoist</option>
+    <option value="gantry crane">Gantry Crane</option>
+  </select>
+</div>
+
+<div style="display:flex; gap:8px; margin-top:6px;">
+  <button id="clearBtn" class="btn ghost" style="width:100%;">Clear</button>
+</div>
+
+<div class="controlsRow" style="margin-top:10px;">
+  <input id="search" class="search" placeholder="Search plate / name / site / model">
+</div>
+
+
+    <div class="list" id="list"></div>
+    <div class="pager" id="pager"></div>
+  </div>
+
+  <!-- MAP -->
+  <div class="mapwrap" id="mapArea">
+    <div id="map"></div>
+
+    <!-- floating small popup for double-click -->
+    <div id="mapPopup" class="popup-panel" style="display:none; position:absolute; top:80px; right:22px; width:320px; background:#fff; border-radius:10px; padding:12px; box-shadow:0 6px 30px rgba(0,0,0,0.18); z-index:9999;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-weight:700" id="p_name">Crane</div>
+        <button class="hide" onclick="hideMapPopup()">Close</button>
+      </div>
+      <div style="margin-top:8px" id="p_body"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT DETAILS -->
+  <div class="details" id="details" style="display:none;">
+    <div class="head">
+      <div>
+        <div style="font-weight:700" id="detailName">Select a crane</div>
+        <div class="muted" id="detailType">Type</div>
+      </div>
+      <div>
+        <button class="hide" id="hideDetails">Hide</button>
+      </div>
+    </div>
+
+    <div class="dbody" id="detailBody">
+      <div class="drow"><div class="dlabel">Status</div><div id="d_status">-</div></div>
+      <div class="drow"><div class="dlabel">Location (lat, lng)</div><div id="d_coords">-</div></div>
+      <div class="drow"><div class="dlabel">Model</div><div id="d_model">-</div></div>
+      <div class="drow"><div class="dlabel">Serial</div><div id="d_serial">-</div></div>
+      <div class="drow"><div class="dlabel">Asset No</div><div id="d_asset">-</div></div>
+      <div class="drow"><div class="dlabel">Height / Capacity / Jib</div><div id="d_spec">-</div></div>
+      <div class="actions">
+        <button class="btn primary" id="centerBtn">Center Map</button>
+    <button class="btn ghost" id="openChecklistBtn">Inspection Checklist</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MANAGEMENT PANEL -->
+<div class="panel-wrap" id="mgmtWrap">
+  <div class="panel">
+ <div class="panel-header">
+
+    <!-- LEFT SIDE FILTERS -->
+    <div class="filters-left">
+        <input id="mgmtSearch" class="search" placeholder="Search name / site / model">
+        <select id="mgmtFilterType" class="small">
+            <option value="">All Types</option>
+            <option value="tower crane">Tower Crane</option>
+            <option value="passenger hoist">Passenger Hoist</option>
+            <option value="gantry crane">Gantry Crane</option>
+        </select>
+
+        <select id="mgmtFilterStatus" class="small">
+            <option value="">All Status</option>
+            <option>Working</option>
+            <option>Idle</option>
+            <option>Maintenance</option>
+        </select>
+<select id="mgmtFilterFoundation" class="small">
+    <option value="">All Foundations</option>
+    <option>Travelling System</option>
+    <option>Fixing Angle System</option>
+</select>
+
+    </div>
+
+    <!-- RIGHT SIDE ACTIONS -->
+    <div class="actions-right">
+        <label class="small btn ghost" style="display:inline-flex; gap:8px; align-items:center;">
+            Bulk Import <input type="file" id="mgmtImport" accept=".csv,.xlsx" style="display:none" />
+        </label>
+
+        <div style="position:relative;">
+            <button id="exportDropdownBtn" class="small">Export ▾</button>
+            <div id="exportDropdown" style="display:none; position:absolute; right:0; top:36px; background:white; border:1px solid #eee; border-radius:6px; box-shadow:0 6px 20px rgba(0,0,0,0.08); z-index:80;">
+                <div style="padding:8px; cursor:pointer;" id="expCsv">Export CSV</div>
+                <div style="padding:8px; cursor:pointer;" id="expPdf">Export PDF</div>
+            </div>
+        </div>
+
+        <button id="mgmtAdd" class="btn primary">+ Add Crane</button>
+
+        <select id="rowsPerPageMgmt" class="small">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+        </select>
+
+        <button id="mgmtClose" class="btn ghost">Close</button>
+    </div>
+
+</div>
+
+
+    <div style="overflow:auto;">
+      <table class="table" id="mgmtTable">
+        <thead>
+<tr>
+  <th>Type</th>
+  <th>Name</th>
+<th>Asset Code</th> 
+  <th>Operator Details</th>
+  <th>Site</th>
+  <th>Brand</th> <!-- NEW -->
+  <th>Model</th>
+  <th>Serial</th>
+  <th>Foundation</th> <!-- NEW -->
+  <th>Lat</th>
+  <th>Lng</th>
+  <th>Height</th>
+  <th>Jib</th>
+  <th>Status</th>
+  <th>Actions</th>
+</tr>
+
+        </thead>
+        <tbody id="mgmtTbody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px; justify-content:flex-end; margin-top:12px;">
+      <div id="mgmtPager" class="pager"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- THIRD-PARTY CERTIFICATES PANEL -->
+<div class="panel-wrap" id="thirdPartyWrap" style="display:none;">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="filters-left">
+        <input id="tpSearch" class="search" placeholder="Search certificate / crane name / owner">
+        <select id="tpFilterCrane" class="small"><option value="">All Cranes</option></select>
+        <input id="tpFrom" type="date" class="small" placeholder="From">
+        <input id="tpTo" type="date" class="small" placeholder="To">
+      </div>
+
+      <div class="actions-right">
+        <label class="small btn ghost" style="display:inline-flex; gap:8px; align-items:center;">
+          Import PDF/Image <input type="file" id="tpImport" accept=".pdf,.png,.jpg,.jpeg" multiple style="display:none" />
+        </label>
+
+        <button id="tpExportXlsx" class="small">Export XLSX</button>
+        <button id="tpExportPdf" class="small">Export PDF</button>
+
+        <select id="rowsPerPageTp" class="small"><option>10</option><option selected>20</option><option>50</option></select>
+        <button id="tpClose" class="btn ghost">Close</button>
+      </div>
+    </div>
+
+<div class="tipBox">
+  💡 Tip: Right-click a row to open Tower Crane Third Party Logs History
+</div>
+
+    <div style="overflow:auto; margin-top:12px;">
+      <table class="table" id="tpTable">
+        <thead>
+          <tr>
+            <th>Crane</th>
+            <th>Certificate No</th>
+            <th>Inspection Date</th>
+            <th>Owner</th>
+            <th>Model / Serial</th>
+            <th>Next Due</th>
+            <th>Status</th>
+            <th>Uploaded</th>
+            <th>Download</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tpTbody"></tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px; justify-content:flex-end; margin-top:12px;">
+      <div id="tpPager" class="pager"></div>
+    </div>
+  </div>
+</div>
+
+<!-- OPERATOR OVERSTAY REPORT PANEL -->
+<div class="panel-wrap" id="opOverstayWrap" style="display:none;">
+  <div class="panel">
+
+    <div class="panel-header">
+      <div class="filters-left">
+        <input id="opOsSearch" class="search" placeholder="Search Name / Employee ID">
+        <select id="opOsFilterStatus" class="small">
+          <option value="">All Status</option>
+          <option value="Overstay">Overstay</option>
+          <option value="Leave6m">Leave > 6 Months</option>
+        </select>
+      </div>
+
+      <div class="actions-right">
+        <button id="opOsExportPdf" class="small">Export PDF</button>
+        <select id="rowsPerPageOpOs" class="small">
+          <option>10</option>
+          <option selected>20</option>
+        </select>
+        <button id="opOsClose" class="btn ghost">Close</button>
+      </div>
+    </div>
+
+    <div style="overflow:auto; margin-top:12px;">
+      <table class="table" id="opOsTable">
+        <thead>
+          <tr>
+            <th>Employee ID</th>
+            <th>Name</th>
+            <th>Leave Since</th>
+            <th>Leave Till</th>
+            <th>Days Away</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="opOsTbody"></tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; align-items:center; justify-content:flex-end; margin-top:12px;">
+      <div id="opOsPager" class="pager"></div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- OPERATORS PANEL -->
+<div class="panel-wrap" id="operatorsWrap">
+  <div class="panel">
+<div class="panel-header">
+
+    <!-- LEFT SIDE FILTERS -->
+    <div class="filters-left">
+        <input id="opSearch" class="search" placeholder="Search Employee ID / Name / Crane Name / Contact">
+        
+        <select id="opFilterType" class="small">
+            <option value="">All Crane Types</option>
+            <option>Tower Crane</option>
+            <option>Passenger Hoist</option>
+            <option>Gantry Crane</option>
+        </select>
+<select id="opFilterStatus" class="small">
+    <option value="">All Status</option>
+    <option>Active</option>
+    <option>On Leave</option>
+    <option>Operator IDLE</option>
+    <option>Resigned</option>
+</select>
+
+    </div>
+
+    <!-- RIGHT SIDE ACTIONS -->
+    <div class="actions-right">
+        <label class="small btn ghost" style="display:inline-flex; gap:8px; align-items:center;">
+            Bulk Import <input type="file" id="opImport" accept=".csv,.xlsx" style="display:none" />
+        </label>
+
+        <button id="opExport" class="btn ghost">Export XLSX</button>
+
+        <button id="opAdd" class="btn primary">+ Add Operator</button>
+
+        <select id="rowsPerPageOp" class="small">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+        </select>
+
+        <button id="opClose" class="btn ghost">Close</button>
+    </div>
+
+</div>
+
+
+    <div style="overflow:auto; margin-top:12px;">
+      <table class="table" id="opTable">
+        <thead>
+          <tr>
+            <th>Employee ID</th><th>Name</th><th>Designation</th><th>Shift</th><th>Crane Type</th><th>Crane Name</th><th>Contact</th><th>Joining Date</th><th>Leave Since/Resigned date</th><th>Leave Till</th><th>Status</th><th>Remarks</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="opTbody"></tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px; justify-content:flex-end; margin-top:12px;">
+      <div id="opPager" class="pager"></div>
+    </div>
+  </div>
+</div>
+
+<!-- shared modal used for Add/Edit for both Management & Operators -->
+<div class="modal-back" id="modal" style="display:none;">
+  <div class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center;"><h3 id="modalTitle">Edit</h3><button onclick="closeModal()">✖</button></div>
+    <div id="modalBody" style="margin-top:10px"></div>
+  </div>
+</div>
+<script>
+/* ======================
+   Data & state (localStorage demo)
+   ====================== */
+const PAGE_SIZE_DEFAULT = 10;
+const STORAGE_KEY = 'tcms_data_v3';
+
+let state = {
+  view: 'live', // live | mgmt | operators
+  items: [],
+  page: 1,
+  mgmtPage: 1,
+  opPage: 1,
+  operators: []
+};
+
+function uid(){ return 'id_'+Math.random().toString(36).slice(2,9); }
+function loadData(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw){
+    // seed
+    state.items = [
+      { id: uid(), type:'tower crane', name:'TC-101',foundation:"Travelling System", site:'Sports Hotel',brand:"Potain", model:'MC 205 B', serial:'350030', asset:'170405028', lat:24.4605, lng:54.3710, height:50, jib:60, status:'Working', notes:'', createdAt:Date.now() },
+      { id: uid(), type:'passenger hoist', name:'PH-05', site:'Mall A', model:'Alimak 200', serial:'H005', asset:'H170', lat:24.4550, lng:54.3788, height:30, jib:0, status:'Idle', notes:'', createdAt:Date.now() },
+      { id: uid(), type:'gantry crane', name:'GC-02', site:'Port Area', model:'Potain G', serial:'G778', asset:'G300', lat:24.4480, lng:54.3840, height:0, jib:0, status:'Maintenance', notes:'', createdAt:Date.now() }
+    ];
+    state.operators = [
+      { id: uid(), employeeId:'EMP001', name:'Ali Khan', designation:'Operator', craneType:'Tower Crane', craneName:'TC-101', contact:'0500001111', leaveSince:'', leaveTill:'', status:'Active', remarks:'' }
+    ];
+    saveData();
+  } else {
+    try { const parsed = JSON.parse(raw); state.items = parsed.items || []; state.operators = parsed.operators || []; } catch(e){ state.items = []; state.operators = []; }
+  }
+}
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items: state.items, operators: state.operators })); }
+
+/* ======================
+   Map & markers
+   ====================== */
+const map = L.map('map', { zoomControl: true }).setView([24.4539,54.3773], 18);
+document.getElementById("centerBtn").addEventListener("click", function () {
+    // Default coordinates – change if needed
+    const defaultLat = 24.605079;   // Default Ajban Yard
+    const defaultLng = 54.999189;
+    const defaultZoom = 12;
+
+    map.setView([defaultLat, defaultLng], defaultZoom);
+});
+// Pane for labels above all layers
+map.createPane("labelsPane");
+map.getPane("labelsPane").style.zIndex = 650;
+map.getPane("labelsPane").style.pointerEvents = "none";
+map.createPane("satPane");
+map.getPane("satPane").style.zIndex = 200;
+
+
+const normalMap = L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{ maxZoom:17 });
+const satelliteBase = L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  { maxZoom: 18, pane: "satPane" }
+);
+
+const landmarks = L.tileLayer(
+  "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+  { maxZoom: 18, pane: "labelsPane" }
+);
+
+const streetLabels = L.tileLayer(
+  "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}",
+  { maxZoom: 18, pane: "labelsPane" }
+);
+
+// ESRI Satellite Imagery + Labels
+const satelliteWithLabels = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+);
+
+const esriLabels = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+    { pane: "labelsPane" }
+);
+
+const satellite = L.layerGroup([satelliteBase, landmarks, streetLabels]);
+const satellite_no_labels = L.layerGroup([satelliteBase]);
+normalMap.addTo(map);
+L.control.layers({ "Normal Map": normalMap, "Satellite (Full Labels)": satellite, "Satellite Only": satellite_no_labels }, {}, { position: 'topleft' }).addTo(map);
+const clusterGroup = L.markerClusterGroup(); map.addLayer(clusterGroup);
+let markers = {}; let jibCircles = {};
+function statusColor(status){ if(!status) return '#6b7280'; const s = status.toLowerCase(); if(s.includes('work')) return '#16a34a'; if(s.includes('idle')) return '#f59e0b'; if(s.includes('maint')) return '#ef4444'; return '#6b7280'; }
+
+// ================================================
+// CLICK ANYWHERE ON MAP → SHOW + COPY COORDINATES
+// ================================================
+let selectedMarker = null;
+
+map.on("click", function (e) {
+
+    const lat = e.latlng.lat.toFixed(6);
+    const lng = e.latlng.lng.toFixed(6);
+    const text = `${lat}, ${lng}`;
+
+    // Remove previous selected marker
+    if (selectedMarker) {
+        map.removeLayer(selectedMarker);
+    }
+
+    // Add new red pin
+    selectedMarker = L.marker([lat, lng], {
+        icon: L.icon({
+            iconUrl: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+            iconSize: [32, 32],
+            iconAnchor: [16, 32]
+        })
+    }).addTo(map);
+
+    // Popup with manual copy button only
+    L.popup()
+      .setLatLng(e.latlng)
+      .setContent(`
+        <b>Selected Location</b><br>
+        Lat: ${lat}<br>
+        Lng: ${lng}<br>
+        <button onclick="navigator.clipboard.writeText('${lat}, ${lng}')">Copy Coordinates</button>
+      `)
+      .openOn(map);
+});
+
+
+function addMarker(item){
+  if(item.lat==null || item.lng==null) return;
+  if(markers[item.id]) { clusterGroup.removeLayer(markers[item.id]); delete markers[item.id]; }
+  if(jibCircles[item.id]) { map.removeLayer(jibCircles[item.id]); delete jibCircles[item.id]; }
+  const fill = statusColor(item.status);
+  const marker = L.circleMarker([item.lat, item.lng], { radius:9, color:'#fff', weight:2, fillColor:fill, fillOpacity:1 });
+  marker.bindPopup(`<b>${escapeHtml(item.name)}</b><br>${escapeHtml(item.site||'')}`);
+  marker.on('click', ()=> openDetails(item.id));
+  clusterGroup.addLayer(marker); markers[item.id] = marker;
+  const jibLen = parseFloat(item.jib?.toString().trim() || "0");
+  if (item.type === "tower crane" && jibLen > 0) {
+      const circle = L.circle([item.lat, item.lng], { radius: jibLen, color: "#0070ff80", fillColor: "#0070ff30", fillOpacity: 0.25, weight: 1, });
+      circle.addTo(map); jibCircles[item.id] = circle;
+  }
+}
+function refreshMarkersForType(type){ clusterGroup.clearLayers(); Object.keys(jibCircles).forEach(k=>{ map.removeLayer(jibCircles[k]); delete jibCircles[k]; }); state.items.filter(i=> !type || i.type===type).forEach(addMarker); }
+
+/* ======================
+   Left list rendering
+   ====================== */
+const PAGE_SIZE = 10;
+function renderLiveList(){
+  const listEl = document.getElementById('list'); listEl.innerHTML = '';
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const statusFilter = document.getElementById('filterStatus').value;
+  const typeFilter = document.getElementById('filterType').value;
+  const items = state.items.filter(i => (!typeFilter || i.type === typeFilter) && (!statusFilter || i.status === statusFilter) && (!q || `${i.name} ${i.site} ${i.model} ${i.serial}`.toLowerCase().includes(q)) );
+  const total = items.length; const pages = Math.max(1, Math.ceil(total / PAGE_SIZE)); if(state.page > pages) state.page = pages; const start = (state.page-1)*PAGE_SIZE; const pageItems = items.slice(start, start+PAGE_SIZE);
+  if(pageItems.length === 0) listEl.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted)">No items</div>`;
+  else pageItems.forEach(it=>{
+    const card = document.createElement('div'); card.className='card';
+    card.onclick = ()=> { if(it.lat && it.lng){ map.setView([it.lat,it.lng],16); } openDetails(it.id,false); };
+    const color = statusColor(it.status);
+    const thumb = document.createElement('div'); thumb.className='thumb'; thumb.style.background=color; thumb.textContent = (it.name||'C').slice(0,2).toUpperCase();
+    const meta = document.createElement('div'); meta.className='meta';
+const op = state.operators.find(o => o.craneName === it.name);
+
+const opLive = op ? `${escapeHtml(op.name)} (${escapeHtml(op.employeeId)})` : 'No Operator';
+    meta.innerHTML = `<div class="title">${escapeHtml(it.name)}</div><div class="sub">${escapeHtml(it.site||'')}</div><div class="bottom"> <span>${opLive}</span><span><span class="badge" style="background:${color}">${escapeHtml(it.status||'')}</span></span></div>`;
+    card.appendChild(thumb); card.appendChild(meta); listEl.appendChild(card);
+  });
+  renderPager(total,'left','page');
+}
+
+/* pager */
+function renderPager(total, where='left', stateKey='page'){
+  const pager = (where==='left')? document.getElementById('pager') : (where==='mgmt'? document.getElementById('mgmtPager') : document.getElementById('opPager'));
+  pager.innerHTML = '';
+  const size = (where==='mgmt') ? parseInt(document.getElementById('rowsPerPageMgmt').value || PAGE_SIZE_DEFAULT) : (where==='op' ? parseInt(document.getElementById('rowsPerPageOp').value || PAGE_SIZE_DEFAULT) : PAGE_SIZE);
+  const pages = Math.max(1, Math.ceil(total / size)); if(state[stateKey] > pages) state[stateKey] = pages;
+  const makeBtn=(txt,cb,dis)=>{ const b=document.createElement('button'); b.textContent=txt; b.disabled=!!dis; if(!dis) b.onclick=cb; return b; };
+  pager.appendChild(makeBtn('<<', ()=>{ state[stateKey]=1; if(where==='left') renderLiveList(); if(where==='mgmt') renderMgmtTable(); if(where==='op') renderOperators(); }, state[stateKey]===1));
+  pager.appendChild(makeBtn('<', ()=>{ if(state[stateKey]>1) state[stateKey]--; if(where==='left') renderLiveList(); if(where==='mgmt') renderMgmtTable(); if(where==='op') renderOperators(); }, state[stateKey]===1));
+  const info = document.createElement('div'); info.style.padding='6px 10px'; info.style.color='var(--muted)'; info.textContent = `Page ${state[stateKey]} / ${pages} (${total})`; pager.appendChild(info);
+  pager.appendChild(makeBtn('>', ()=>{ if(state[stateKey]<pages) state[stateKey]++; if(where==='left') renderLiveList(); if(where==='mgmt') renderMgmtTable(); if(where==='op') renderOperators(); }, state[stateKey]===pages));
+  pager.appendChild(makeBtn('>>', ()=>{ state[stateKey]=pages; if(where==='left') renderLiveList(); if(where==='mgmt') renderMgmtTable(); if(where==='op') renderOperators(); }, state[stateKey]===pages));
+}
+
+/* ======================
+   Details / auto-hide
+   ====================== */
+let detailHideTimer = null;
+function openDetails(id, scroll = true) {
+  const item = state.items.find(x=>x.id===id); if(!item) return;
+  state.selectedId = id;
+  document.getElementById('detailName').textContent = item.name;
+  document.getElementById('detailType').textContent = item.type;
+  document.getElementById('d_status').textContent = item.status || '-';
+  document.getElementById('d_coords').textContent = (item.lat?item.lat:'-') +', '+ (item.lng?item.lng:'-');
+  document.getElementById('d_model').textContent = item.model || '-';
+  document.getElementById('d_serial').textContent = item.serial || '-';
+  document.getElementById('d_asset').textContent = item.asset || '-';
+  document.getElementById('d_spec').textContent = `${item.height||'-'} / ${item.jib||'-'}`;
+  const panel = document.getElementById('details'); panel.style.display = 'flex';
+  if(detailHideTimer) clearTimeout(detailHideTimer);
+  detailHideTimer = setTimeout(()=>{ panel.style.display='none'; }, 5000);
+  if(scroll) document.getElementById('list').scrollTop = 0;
+}
+document.getElementById('hideDetails').addEventListener('click', ()=>{ document.getElementById('details').style.display='none'; if(detailHideTimer) clearTimeout(detailHideTimer); });
+
+function openMapPopup(item){ document.getElementById('p_name').textContent = item.name; document.getElementById('p_body').innerHTML = `\n    <div class="muted">Type:</div><div>${item.type}</div>\n    <div class="muted" style="margin-top:8px">Site:</div><div>${escapeHtml(item.site||'-')}</div>\n    <div class="muted" style="margin-top:8px">Model:</div><div>${escapeHtml(item.model||'-')}</div>\n    <div class="muted" style="margin-top:8px">Coords:</div><div>${item.lat||'-'}, ${item.lng||'-'}</div>\n  `; document.getElementById('mapPopup').style.display='block'; }
+function hideMapPopup(){ document.getElementById('mapPopup').style.display='none'; }
+
+/* ======================
+   Management & Operators rendering + actions
+   ====================== */
+function renderMgmtTable(){
+  const tbody = document.getElementById('mgmtTbody'); tbody.innerHTML='';
+  const q = document.getElementById('mgmtSearch').value.trim().toLowerCase();
+  const typeFilter = document.getElementById('mgmtFilterType').value;
+  const statusFilter = document.getElementById('mgmtFilterStatus').value;
+  const arr = state.items.filter(i=>{ if(typeFilter && i.type !== typeFilter) return false; if(statusFilter && i.status !== statusFilter) return false;
+const foundationFilter = document.getElementById('mgmtFilterFoundation').value;
+if (foundationFilter && i.foundation !== foundationFilter) return false;
+
+ if(!q) return true; return `${i.type} ${i.name} ${i.site} ${i.model} ${i.serial}`.toLowerCase().includes(q); });
+  const size = parseInt(document.getElementById('rowsPerPageMgmt').value || PAGE_SIZE_DEFAULT);
+  const total = arr.length; const pages = Math.max(1, Math.ceil(total/size)); if(state.mgmtPage>pages) state.mgmtPage = pages;
+  const start = (state.mgmtPage-1)*size; const pageItems = arr.slice(start, start+size);
+  pageItems.forEach(it=>{
+    const tr = document.createElement('tr');
+const op = state.operators.find(o => o.craneName === it.name);
+
+const opDetails = op ? `${escapeHtml(op.name)} (${escapeHtml(op.employeeId)})` : '—';
+
+    tr.innerHTML = `<td>${it.type}</td><td>${escapeHtml(it.name)}</td><td>${escapeHtml(it.asset || "")}</td><td>${opDetails}</td><td>${escapeHtml(it.site)}</td><td>${escapeHtml(it.brand || "")}</td><td>${escapeHtml(it.model)}</td><td>${escapeHtml(it.serial)}</td><td>${escapeHtml(it.foundation || "")}</td><td>${it.lat||''}</td><td>${it.lng||''}</td><td>${it.height||''}</td><td>${it.jib||''}</td><td><span class="badge" style="background:${statusColor(it.status)}">${it.status||''}</span></td>\n    <td><button class="btn ghost" onclick="openMgmtModal('${it.id}')">Edit</button> <button class="btn ghost" onclick="deleteMgmt('${it.id}')">Delete</button></td>`;
+    tbody.appendChild(tr);
+  });
+  renderPager(total,'mgmt','mgmtPage');
+}
+
+function deleteMgmt(id){ if(!confirm('Delete crane?')) return; const idx = state.items.findIndex(x=>x.id===id); if(idx>=0){ state.items.splice(idx,1); saveData(); refreshView(); } }
+
+/* ======================
+   Modal logic for Management
+   ====================== */
+function openMgmtModal(editId=null){
+  const modal = document.getElementById('modal'); const title = document.getElementById('modalTitle'); const body = document.getElementById('modalBody');
+  let isEdit = !!editId; title.textContent = isEdit ? 'Edit Crane' : 'Add Crane';
+  let it = { name:'', type:'tower crane', site:'', model:'', serial:'', asset:'', lat:'', lng:'', height:'', jib:'', status:'Working', notes:'' };
+  if(isEdit){ const found = state.items.find(x=>x.id===editId); if(found) it = {...found}; }
+  body.innerHTML = `
+    <div class="form-row"><input id="fm_name" placeholder="Crane Name" value="${escapeHtml(it.name)}"><select id="fm_type"><option value="tower crane">Tower Crane</option><option value="passenger hoist">Passenger Hoist</option><option value="gantry crane">Gantry Crane</option></select></div>
+<div class="form-row"><input id="fm_serial" placeholder="Serial No" value="${escapeHtml(it.serial)}"><input id="fm_asset" placeholder="Asset Code" value="${escapeHtml(it.asset)}"></div>
+    <div class="form-row"><input id="fm_site" placeholder="Site / Address" value="${escapeHtml(it.site)}"><input id="fm_model" placeholder="Model" value="${escapeHtml(it.model)}"></div>
+<div class="form-row">
+    <input id="fm_brand" placeholder="Brand" value="${escapeHtml(it.brand || "")}">
+    <select id="fm_foundation">
+        <option value="">-- Foundation Type --</option>
+        <option>Travelling System</option>
+        <option>Fixing Angle System</option>
+    </select>
+</div>
+
+    
+    <div class="form-row"><input id="fm_lat" placeholder="Latitude" value="${it.lat||''}"><input id="fm_lng" placeholder="Longitude" value="${it.lng||''}"></div>
+    <div class="form-row"><input id="fm_height" placeholder="Height / Capacity" value="${escapeHtml(it.height)}"><input id="fm_jib" placeholder="Jib Length (meters)" value="${it.jib||''}"></div>
+    <div class="form-row"><select id="fm_status"><option>Working</option><option>Idle</option><option>Maintenance</option></select><input id="fm_notes" placeholder="Remarks / Notes" value="${escapeHtml(it.notes)}"></div>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" id="fm_save">${isEdit? 'Save': 'Add'}</button></div>
+  `;
+  // set selected values after DOM injection
+  setTimeout(()=>{ document.getElementById('fm_type').value = it.type || 'tower crane'; document.getElementById('fm_status').value = it.status || 'Working'; document.getElementById('modal').style.display='flex'; document.getElementById('fm_save').onclick = ()=>{ const payload = { name: document.getElementById('fm_name').value.trim(), type: document.getElementById('fm_type').value, site: document.getElementById('fm_site').value.trim(), model: document.getElementById('fm_model').value.trim(),brand: document.getElementById('fm_brand').value.trim(),foundation: document.getElementById('fm_foundation').value, 
+ serial: document.getElementById('fm_serial').value.trim(), asset: document.getElementById('fm_asset').value.trim(), lat: parseFloat(document.getElementById('fm_lat').value) || 0, lng: parseFloat(document.getElementById('fm_lng').value) || 0, height: document.getElementById('fm_height').value.trim(), jib: parseFloat(document.getElementById('fm_jib').value) || 0, status: document.getElementById('fm_status').value, notes: document.getElementById('fm_notes').value.trim(), createdAt: Date.now() }; if(isEdit){ const idx = state.items.findIndex(x=>x.id===editId); if(idx>=0) state.items[idx] = {...state.items[idx], ...payload}; } else { payload.id = uid(); state.items.push(payload); }
+
+// =========================
+// AUTO-UNASSIGN OPERATORS IF CRANE STATUS BECOMES IDLE OR MAINTENANCE
+// =========================
+if (payload.status === "Idle" || payload.status === "Maintenance") {
+
+    state.operators.forEach(op => {
+        if (op.craneName === payload.name) {
+
+            // Remove crane assignment
+            op.craneName = "";
+            op.craneType = "";
+
+            // Set operator status to Operator IDLE
+            op.status = "Operator IDLE";
+
+            // Set leaveSince date automatically
+            op.leaveSince = new Date().toISOString().split("T")[0];
+
+            // Clear leaveTill
+            op.leaveTill = "";
+        }
+    });
+}
+
+
+
+ saveData(); closeModal(); refreshView(); }; }, 50);
+}
+
+/* ======================
+   Modal logic for Operators
+   ====================== */
+function openOpModal(editId=null){
+  const modal = document.getElementById('modal'); const title = document.getElementById('modalTitle'); const body = document.getElementById('modalBody');
+  let isEdit = !!editId; title.textContent = isEdit ? 'Edit Operator' : 'Add Operator';
+  let o = { employeeId:'', name:'', designation:'', shift:'', craneType:'Tower Crane', craneName:'', contact:'',JoiningDate:'', leaveSince:'', leaveTill:'', status:'Active', remarks:'' };
+  if(isEdit){ const found = state.operators.find(x=>x.id===editId); if(found) o = {...found}; }
+  // build crane options
+
+// Build initial crane dropdown filtered by unassigned cranes
+// find cranes already assigned to ACTIVE operators
+// -------------------------------------------
+// SHIFT-WISE CRANE FILTERING
+// -------------------------------------------
+// -------------------------------------------
+// SHIFT-BASED CRANE ASSIGNMENT
+// -------------------------------------------
+
+// Current shift (blank before user selects)
+let currentShift = o.shift || "";
+
+// Function: Is crane allowed for selected shift?
+function isCraneAllowedForShift(craneName, shift) {
+    if (!shift) return true; // If shift not chosen yet, show all cranes
+
+    const assignedOps = state.operators.filter(op => op.craneName === craneName);
+
+    // No assignment → available
+    if (assignedOps.length === 0) return true;
+
+    // If assigned to same shift → not allowed
+    if (assignedOps.some(op => op.shift === shift)) return false;
+
+    // Assigned to opposite shift → allowed
+    return true;
+}
+
+// -------------------------------------------
+// BUILD CRANE DROPDOWN (SHIFT FILTERED)
+// -------------------------------------------
+let craneOptions =
+    '<option value="">-- Select Crane --</option>' +
+    state.items
+        .filter(c => isCraneAllowedForShift(c.name, currentShift) || c.name === o.craneName)
+        .map(c => {
+            return `
+                <option value="${escapeHtml(c.name)}">
+                    ${escapeHtml(c.name)}${c.site ? " — " + escapeHtml(c.site) : ""}
+                </option>
+            `;
+        })
+        .join('');
+
+
+
+  body.innerHTML = `
+
+<!-- Row 1 -->
+<div class="form-row">
+    <input id="fo_empid" placeholder="Employee ID" value="${escapeHtml(o.employeeId)}">
+    <input id="fo_name" placeholder="Name" value="${escapeHtml(o.name)}">
+</div>
+
+<!-- Row 2 -->
+<div class="form-row">
+    <input id="fo_designation" placeholder="Designation" value="${escapeHtml(o.designation)}">
+    <select id="fo_cranetype">
+        <option>Tower Crane</option>
+        <option>Passenger Hoist</option>
+        <option>Gantry Crane</option>
+    </select>
+</div>
+
+<!-- Row 3 -->
+<div class="form-row">
+    <select id="fo_cranename">${craneOptions}</select>
+    <input id="fo_contact" placeholder="Contact" value="${escapeHtml(o.contact)}">
+</div>
+
+<!-- Row 4 (Joining Date + Leave Since) -->
+<div class="form-row">
+ <div class="label-box">
+        <label>Joining Date</label>
+    <input id="fo_joiningDate" type="date" value="${o.joiningDate || ''}"></div>
+<div class="label-box">
+<label>Leave Since/Resigned Date</label>
+    <input id="fo_leave_since" type="date" value="${o.leaveSince || ''}">
+</div>
+</div>
+
+<!-- Row 5 (Leave Till + Status) -->
+<div class="form-row">
+<div class="label-box">
+<label>Leave Till</label>
+    <input id="fo_leave_till" type="date" value="${o.leaveTill || ''}"></div>
+   
+<div class="label-box">
+<label>Status</label>
+ <select id="fo_status">
+
+        <option>Active</option>
+        <option>On Leave</option>
+        <option>Operator IDLE</option>
+        <option>Resigned</option>
+    </select>
+</div>
+</div>
+<!-- Row 6: Remarks (FULL WIDTH) -->
+<div class="form-row">
+  <select id="fo_shift">
+        <option value="">-- Shift --</option>
+        <option value="Day">Day</option>
+        <option value="Night">Night</option>
+    </select>
+
+    <input id="fo_remarks" placeholder="Remarks" style="width:100%;" value="${escapeHtml(o.remarks)}">
+</div>
+    
+
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" id="fo_save">${isEdit? 'Save': 'Add'}</button></div>
+  `;
+  setTimeout(()=>{ document.getElementById('fo_cranetype').value = o.craneType || 'Tower Crane';
+
+
+document.getElementById('fo_cranename').value = o.craneName || ''; document.getElementById('fo_status').value = o.status || 'Active'; document.getElementById('modal').style.display='flex'; 
+document.getElementById("fo_shift").value = o.shift || "";
+
+document.getElementById("fo_shift").addEventListener("change", function () {
+    currentShift = this.value;
+
+    // Rebuild dropdown based on new shift
+    const craneSelect = document.getElementById("fo_cranename");
+
+    craneSelect.innerHTML =
+        '<option value="">-- Select Crane --</option>' +
+        state.items
+            .filter(c => isCraneAllowedForShift(c.name, currentShift) || c.name === o.craneName)
+            .map(c => {
+                return `
+                    <option value="${escapeHtml(c.name)}">
+                        ${escapeHtml(c.name)}${c.site ? " — " + escapeHtml(c.site) : ""}
+                    </option>
+                `;
+            })
+            .join('');
+
+    // Keep previously selected crane if allowed
+    if (isCraneAllowedForShift(o.craneName, currentShift)) {
+        craneSelect.value = o.craneName;
+    }
+});
+
+
+
+
+    // -------------------------------------------
+    // Date field enable/disable logic
+    // -------------------------------------------
+    function updateDateFieldState() {
+        const status = document.getElementById('fo_status').value;
+        const leaveSinceInput = document.getElementById('fo_leave_since');
+        const leaveTillInput  = document.getElementById('fo_leave_till');
+
+        if (status === "Active") {
+            leaveSinceInput.disabled = true;
+            leaveTillInput.disabled = true;
+            leaveSinceInput.value = "";
+            leaveTillInput.value = "";
+        }
+        else if (status === "Resigned" || status === "Operator IDLE") {
+            leaveSinceInput.disabled = false;
+            leaveTillInput.disabled = true;
+            // keep value of leaveSince if already set, clear leaveTill
+            leaveTillInput.value = "";
+        }
+        else if (status === "On Leave") {
+            leaveSinceInput.disabled = false;
+            leaveTillInput.disabled = false;
+        }
+    }
+
+    // initial run
+    updateDateFieldState();
+   // bind to changes
+    document.getElementById('fo_status').addEventListener('change', updateDateFieldState);
+
+document.getElementById('fo_save').onclick = ()=>{
+
+    const payload = {
+        employeeId: document.getElementById('fo_empid').value.trim(),
+        name: document.getElementById('fo_name').value.trim(),
+        designation: document.getElementById('fo_designation').value.trim(),
+shift: document.getElementById('fo_shift').value,
+        craneType: document.getElementById('fo_cranetype').value,
+        craneName: document.getElementById('fo_cranename').value,
+        contact: document.getElementById('fo_contact').value.trim(),
+        joiningDate: document.getElementById('fo_joiningDate').value,
+        leaveSince: document.getElementById('fo_leave_since').value || '',
+        leaveTill: document.getElementById('fo_leave_till').value || '',
+        status: document.getElementById('fo_status').value,
+        remarks: document.getElementById('fo_remarks').value.trim()
+    };
+
+// --------------------------------------------------------------
+//  Prevent assigning Idle or Maintenance cranes
+// --------------------------------------------------------------
+if (payload.craneName) {
+    const selectedCrane = state.items.find(c => c.name === payload.craneName);
+
+    if (selectedCrane && 
+        (selectedCrane.status.toLowerCase() === "idle" ||
+         selectedCrane.status.toLowerCase() === "maintenance")) {
+
+        alert("This crane is currently Idle or under Maintenance.\nYou cannot assign it to an operator.");
+        return;
+    }
+}
+
+// --------------------------------------------------------
+//  If status is ACTIVE → crane must be selected
+// --------------------------------------------------------
+if (payload.status === "Active" && (!payload.craneName || payload.craneName === "")) {
+    alert("Please select a crane before activating this operator.");
+    return;
+}
+
+  // --------------------------------------------------------
+//  DATE VALIDATION ONLY when STATUS is NOT Active
+// --------------------------------------------------------
+if (payload.status !== "Active") {
+
+    const jd = payload.joiningDate ? new Date(payload.joiningDate) : null;
+    const ls = payload.leaveSince ? new Date(payload.leaveSince) : null;
+    const lt = payload.leaveTill ? new Date(payload.leaveTill) : null;
+
+    // Leave Since must be selected
+    if (!ls) {
+        alert("Please enter Leave Since / Resigned Date.");
+        return;
+    }
+
+    if (jd && ls && jd >= ls) {
+        alert("Joining Date must be LESS THAN Leave Since date.");
+        return;
+    }
+
+    if (ls && lt && ls >= lt) {
+        alert("Leave Since must be LESS THAN Leave Till.");
+        return;
+    }
+}
+
+ 
+    // --------------------------------------------------------
+    // 🔥 ADDED LOGIC — Auto-remove crane when not active
+    // --------------------------------------------------------
+    if (payload.status === "On Leave" || payload.status === "Resigned" || payload.status === "Operator IDLE") {
+        payload.craneName = "";            // remove assigned crane
+	payload.craneType = "";     // 🔥 clear crane type
+    }
+
+    // --------------------------------------------------------
+    // 🔥 ADDED LOGIC — When switching back to ACTIVE
+    // clear leaveSince & leaveTill
+    // --------------------------------------------------------
+    if (payload.status === "Active") {
+        payload.leaveSince = "";
+        payload.leaveTill = "";
+    }
+
+    // SAVE LOGIC
+    if (isEdit) {
+        const idx = state.operators.findIndex(x => x.id === editId);
+        if (idx >= 0) state.operators[idx] = { ...state.operators[idx], ...payload };
+    } else {
+        payload.id = uid();
+        state.operators.push(payload);
+    }
+
+    saveData();
+    closeModal();
+    renderOperators();
+};
+ }, 50);
+}
+
+function closeModal(){ document.getElementById('modal').style.display='none'; document.getElementById('modalBody').innerHTML = ''; }
+
+/* Operators rendering and actions */
+function renderOperators(){ const tbody = document.getElementById('opTbody'); tbody.innerHTML=''; const q = document.getElementById('opSearch').value.trim().toLowerCase(); const typeFilter = document.getElementById('opFilterType').value; const arr = state.operators.filter(o=>{ if(typeFilter && o.craneType !== typeFilter) return false;const statusFilter = document.getElementById('opFilterStatus').value;
+if (statusFilter && o.status !== statusFilter) return false;
+ if(!q) return true; return `${o.employeeId} ${o.name} ${o.craneName} ${o.contact}`.toLowerCase().includes(q); }); const size = parseInt(document.getElementById('rowsPerPageOp').value || PAGE_SIZE_DEFAULT); const total = arr.length; const pages = Math.max(1, Math.ceil(total/size)); if(state.opPage>pages) state.opPage = pages; const start = (state.opPage-1)*size; const pageItems = arr.slice(start, start+size); pageItems.forEach(o=>{ const tr = document.createElement('tr');
+
+ tr.innerHTML = `<td>${escapeHtml(o.employeeId||'')}</td><td>${escapeHtml(o.name||'')}</td><td>${escapeHtml(o.designation||'')}</td><td>${escapeHtml(o.shift||'')}</td><td>${escapeHtml(o.craneType||'')}</td><td>${escapeHtml(findCraneName(o.craneName)||o.craneName||'')}</td><td>${escapeHtml(o.contact||'')}</td><td>${escapeHtml(o.joiningDate||'')}</td><td>${escapeHtml(o.leaveSince||'')}</td><td>${escapeHtml(o.leaveTill||'')}</td><td>${escapeHtml(o.status||'')}</td><td>${escapeHtml(o.remarks||'')}</td><td><button class="btn ghost" onclick="openOpModal('${o.id}')">Edit</button> <button class="btn ghost" onclick="deleteOperator('${o.id}')">Delete</button></td>`; tbody.appendChild(tr); }); renderPager(total,'op','opPage'); }
+function deleteOperator(id){ if(!confirm('Delete operator?')) return; const idx=state.operators.findIndex(x=>x.id===id); if(idx>=0){ state.operators.splice(idx,1); saveData(); renderOperators(); } }
+
+/* Utility */
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function findCraneName(id){ const c = state.items.find(x=>x.id===id); return c ? c.name : ''; }
+
+/* ======================
+   UI wiring
+   ====================== */
+document.getElementById('navLive').addEventListener('click', ()=>{ clearActiveMenus();state.view='live'; updateView(); setActiveNav('navLive'); });
+document.getElementById('navMgmt').addEventListener('click', ()=>{clearActiveMenus(); state.view='mgmt'; updateView(); setActiveNav('navMgmt'); });
+document.getElementById('navOps').addEventListener('click', ()=>{clearActiveMenus(); state.view='operators'; updateView(); setActiveNav('navOps'); });
+document.getElementById("navMaintenance").addEventListener("click", function () {
+    alert("Please contact Administrator to get access to Maintenance.");
+});
+
+function setActiveNav(id){ ['navLive','navMgmt','navOps'].forEach(x=> document.getElementById(x).classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+/* filters binding */
+document.getElementById('search').addEventListener('input', ()=>{ state.page=1; renderLiveList(); refreshMarkersForType(null); });
+document.getElementById('filterStatus').addEventListener('change', ()=>{ state.page=1; renderLiveList(); refreshMarkersForType(null); });
+document.getElementById('filterType').addEventListener('change', ()=>{ state.page=1; renderLiveList(); refreshMarkersForType(null); });
+
+document.getElementById('clearBtn').addEventListener('click', ()=>{ document.getElementById('search').value=''; document.getElementById('filterStatus').value=''; document.getElementById('filterType').value=''; renderLiveList(); refreshMarkersForType(null); });
+
+document.getElementById('mgmtSearch').addEventListener('input', ()=>{ state.mgmtPage=1; renderMgmtTable(); });
+document.getElementById('mgmtFilterType').addEventListener('change', ()=>{ state.mgmtPage=1; renderMgmtTable(); });
+document.getElementById('mgmtFilterStatus').addEventListener('change', ()=>{ state.mgmtPage=1; renderMgmtTable(); });
+document.getElementById('mgmtFilterFoundation')
+    .addEventListener('change', () => { 
+        state.mgmtPage = 1;
+        renderMgmtTable();
+    });
+
+document.getElementById('rowsPerPageMgmt').addEventListener('change', ()=>{ state.mgmtPage=1; renderMgmtTable(); });
+
+document.getElementById('opSearch').addEventListener('input', ()=>{ state.opPage=1; renderOperators(); });
+document.getElementById('opFilterType').addEventListener('change', ()=>{ state.opPage=1; renderOperators(); });
+document.getElementById('opFilterStatus')
+    .addEventListener('change', ()=>{ 
+        state.opPage = 1; 
+        renderOperators(); 
+    });
+
+document.getElementById('rowsPerPageOp').addEventListener('change', ()=>{ state.opPage=1; renderOperators(); });
+
+/* export dropdown toggle */
+document.getElementById('exportDropdownBtn').addEventListener('click', ()=> { const ex=document.getElementById('exportDropdown'); ex.style.display = ex.style.display==='block' ? 'none' : 'block'; });
+document.addEventListener('click', (e)=>{ if(!e.target.closest('#exportDropdownBtn')) document.getElementById('exportDropdown').style.display='none'; });
+
+document.getElementById('mgmtAdd').addEventListener('click', ()=> openMgmtModal(null));
+document.getElementById('opAdd').addEventListener('click', ()=> openOpModal(null));
+
+document.getElementById('mgmtClose').addEventListener('click', ()=>{ document.getElementById('mgmtWrap').style.display='none'; state.view='live'; updateView(); });
+document.getElementById('opClose').addEventListener('click', ()=>{ document.getElementById('operatorsWrap').style.display='none'; state.view='live'; updateView(); });
+
+/* map click to fill lat/lng when mgmt form open (modal) */
+map.on('click', function(e){ 
+  if(document.getElementById('modal') && document.getElementById('modal').style.display==='flex' && document.getElementById('fm_lat')){
+    document.getElementById('fm_lat').value = e.latlng.lat.toFixed(6);
+    document.getElementById('fm_lng').value = e.latlng.lng.toFixed(6);
+  }
+});
+
+/* ======================
+   refresh + view switching
+   ====================== */
+function refreshView(){ if(state.view==='live'){ renderLiveList(); refreshMarkersForType(null); } if(state.view==='mgmt'){ renderMgmtTable(); } if(state.view==='operators'){ renderOperators(); } }
+function updateView() {
+    document.getElementById('mapArea').style.display =
+        (state.view === 'live') ? 'block' : 'none';
+
+    document.getElementById('leftPanel').style.display =
+        (state.view === 'live') ? 'flex' : 'none';
+
+    document.getElementById('mgmtWrap').style.display =
+        (state.view === 'mgmt') ? 'block' : 'none';
+
+    document.getElementById('operatorsWrap').style.display =
+        (state.view === 'operators') ? 'block' : 'none';
+
+    document.getElementById('thirdPartyWrap').style.display =
+        (state.view === 'thirdparty') ? 'block' : 'none';
+  // Hide operator overstay when switching to any other view
+    document.getElementById("opOverstayWrap").style.display = "none";
+
+    if (state.view === 'live') { renderLiveList(); refreshMarkersForType(null); }
+    if (state.view === 'mgmt') { renderMgmtTable(); }
+    if (state.view === 'operators') { renderOperators(); }
+    if (state.view === 'thirdparty') { tpRenderTable(); }
+   if (state.view === 'op_overstay') { 
+               renderOpOsReport();
+    }
+}
+
+
+/* ======================
+   Init
+   ====================== */
+loadData(); updateView();
+
+/* small keyboard shortcuts for testing */
+//document.addEventListener('keydown', (e)=>{ if(e.key==='1'){ state.view='live'; updateView(); setActiveNav('navLive'); } if(e.key==='2'){ state.view='mgmt'; updateView(); //setActiveNav('navMgmt'); } if(e.key==='3'){ state.view='operators'; updateView(); setActiveNav('navOps'); } });
+
+/* save on unload */
+window.addEventListener('beforeunload', ()=> saveData());
+
+/*-----Tower Crane – EXPORT CSV----->*/
+
+document.getElementById("expCsv").addEventListener("click", function () {
+    let rows = state.items.map(i => ({
+        Type: i.type,
+        Name: i.name,
+	Asset: i.asset,
+        Site: i.site,
+        Brand: i.brand,
+        Model: i.model,
+        Serial: i.serial,
+        Foundation: i.foundation || "",
+        Lat: i.lat,
+        Lng: i.lng,
+        Height: i.height,
+        Jib: i.jib,
+        Status: i.status
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Crane Management");
+    XLSX.writeFile(wb, "tower_cranes.csv");
+});
+
+/*-----Tower Crane – Import CSV/XLSX----->*/
+
+document.getElementById("expPdf").addEventListener("click", async function () {
+    const element = document.getElementById("mgmtTable");
+    const opt = {
+        margin: 10,
+        filename: "tower_cranes.pdf",
+        image: { type: "jpeg", quality: 1 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "landscape" }
+    };
+
+    html2pdf().set(opt).from(element).save();
+});
+
+document.getElementById("mgmtImport").addEventListener("change", function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function (event) {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        rows.forEach(r => {
+            state.items.push({
+                id: uid(),
+                type: r.Type || "tower crane",
+                name: r.Name || "",
+		asset: r.asset ||"",
+                site: r.Site || "",
+                brand: r.Brand || "",
+                model: r.Model || "",
+                serial: r.Serial || "",
+                foundation: r.Foundation || "",
+                lat: parseFloat(r.Lat) || 0,
+                lng: parseFloat(r.Lng) || 0,
+                height: r.Height || "",
+                jib: r.Jib || "",
+                status: r.Status || "Working",
+                notes: ""
+            });
+        });
+
+        saveData();
+        renderMgmtTable();
+        alert("Import completed!");
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+/*-----Oporator – EXPORT CSV----->*/
+
+
+document.getElementById("opExport").addEventListener("click", function () {
+    let rows = state.operators.map(o => ({
+        EmployeeID: o.employeeId,
+        Name: o.name,
+        Designation: o.designation,
+        CraneType: o.craneType,
+        CraneName: findCraneName(o.craneName),
+        Contact: o.contact,
+        JoiningDate: o.joiningDate,
+        LeaveSince: o.leaveSince,
+        LeaveTill: o.leaveTill,
+        Status: o.status,
+        Remarks: o.remarks
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Operators");
+    XLSX.writeFile(wb, "operators.xlsx");
+});
+
+
+/*-----Oporator – Import CSV/XLSX----->*/
+document.getElementById("opImport").addEventListener("change", function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (event) {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        rows.forEach(r => {
+            state.operators.push({
+                id: uid(),
+                employeeId: r.EmployeeID || "",
+                name: r.Name || "",
+                designation: r.Designation || "",
+                craneType: r.CraneType || "",
+                craneName: r.CraneName || "",
+                contact: r.Contact || "",
+                joiningDate: r.JoiningDate || "",
+                leaveSince: r.LeaveSince || "",
+                leaveTill: r.LeaveTill || "",
+                status: r.Status || "Active",
+                remarks: r.Remarks || ""
+            });
+        });
+
+        saveData();
+        renderOperators();
+        alert("Operator import complete!");
+    };
+
+    reader.readAsArrayBuffer(file);
+});
+
+/* ===== Tower Crane Third-Party Module (single cleaned version) ===== */
+const TP_STORAGE_KEY = 'tcms_thirdparty_certs_v2';
+let tpState = { page:1, rowsPerPage:20, items:[] };
+// history store for previous versions (keyed by crane name)
+tpState.history = tpState.history || {}; // { "<Crane Name>": [ { entrySnapshot }, ... ] }
+
+/* small escape helper (keeps consistent with rest of file) */
+function tpEscape(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* load/save functions */
+function tpLoad(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(TP_STORAGE_KEY) || '{}');
+    tpState.items = raw.items || [];
+    tpState.history = raw.history || {};
+  }catch(e){
+    tpState.items = [];
+    tpState.history = {};
+  }
+  tpRebuildFilters();
+}
+function tpSave(){
+  localStorage.setItem(TP_STORAGE_KEY, JSON.stringify({ items: tpState.items, history: tpState.history }));
+}
+
+
+
+/* Wire Reports menu open */
+const rep_tc = document.getElementById('rep_tc_thirdparty');
+
+rep_tc.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    clearActiveMenus();
+ updateView();
+    // Highlight Reports parent button
+    document.getElementById('navReports').classList.add('active');
+
+    // Highlight selected Report submenu
+    rep_tc.classList.add('active');
+
+    // Switch panel view
+    document.getElementById('thirdPartyWrap').style.display = 'block';
+    document.getElementById('mgmtWrap').style.display = 'none';
+    document.getElementById('operatorsWrap').style.display = 'none';
+
+    state.view = 'thirdparty';
+    tpRenderTable();
+});
+
+
+
+
+/* Close */
+document.getElementById('tpClose').addEventListener('click', ()=>{
+  document.getElementById('thirdPartyWrap').style.display='none';
+  state.view='live'; updateView();
+});
+document.getElementById("rep_op_status").addEventListener("click", function () {
+    clearActiveMenus();
+    document.getElementById("navReports").classList.add("active");
+    this.classList.add("active");
+
+    state.view = "op_overstay";
+    openOverstayView();
+});
+function openOverstayView() {
+    document.getElementById("opOverstayWrap").style.display = "block";
+    document.getElementById("thirdPartyWrap").style.display = "none";
+    document.getElementById("mgmtWrap").style.display = "none";
+    document.getElementById("operatorsWrap").style.display = "none";
+    document.getElementById("mapArea").style.display = "none";
+    document.getElementById("leftPanel").style.display = "none";
+
+    renderOpOsReport();
+}
+document.getElementById("opOsClose").addEventListener("click", function() {
+    document.getElementById("opOverstayWrap").style.display = "none";
+    state.view = "live";
+    updateView();
+});
+
+/* File import handler (single & bulk) */
+document.getElementById('tpImport').addEventListener('change', async function(e){
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+
+  let successCount = 0;
+  let failCount = 0;
+  let failList = [];
+
+  for (const f of files) {
+    try {
+      // ---- PROCESS FILE ----
+      const entry = await tpProcessFile(f);
+
+      // -------- CHECK 1: FILE DID NOT PARSE --------
+      if (!entry || !entry.parsed) {
+        failCount++;
+        failList.push(f.name + " (no readable content)");
+        console.warn("No parsed content for:", f.name, entry);
+        continue;
+      }
+
+      const craneName = (entry.parsed.craneName || "").trim();
+
+      // -------- CHECK 2: TOWER CRANE NAME MISSING --------
+      if (!craneName) {
+        failCount++;
+        failList.push(f.name + " (crane name not detected)");
+        console.warn("Crane name not found in:", f.name, entry);
+        continue;
+      }
+
+      // -------- IF PASSED BASIC CHECK, CONTINUE MERGE --------
+      entry.id = "tp_" + Math.random().toString(36).slice(2, 9);
+      entry.uploadedAt = Date.now();
+      entry.isLatest = true;
+
+      // Check if same crane already exists
+      const existingIdx = tpState.items.findIndex(
+        it => (it.parsed?.craneName || "").trim() === craneName && it.isLatest
+      );
+
+      if (existingIdx !== -1) {
+        // Move old record to history
+        const existing = tpState.items[existingIdx];
+        tpState.history[craneName] = tpState.history[craneName] || [];
+
+        tpState.history[craneName].push({
+          savedAt: Date.now(),
+          parsed: existing.parsed || {},
+          fileName: existing.fileName || "",
+          fileBlobUrl: existing.fileBlobUrl || "",
+          uploadedAt: existing.uploadedAt || 0,
+          pageCount: existing.pageCount || 1
+        });
+
+        existing.isLatest = false;
+
+        // Replace existing item instead of adding a new row
+        tpState.items[existingIdx] = entry;
+
+      } else {
+        // No existing crane → add new row
+        tpState.items.unshift(entry);
+      }
+
+      successCount++;
+
+    } catch (err) {
+      failCount++;
+      failList.push(f.name + " (processing error)");
+      console.error("Import error:", f.name, err);
+    }
+  }
+
+  // -------- SAVE + REFRESH UI --------
+  tpSave();
+  tpRebuildFilters();
+  tpRenderTable();
+
+  // -------- SHOW SUMMARY --------
+  let msg = `Import Completed\n\n✔ Successfully imported: ${successCount}`;
+  if (failCount > 0) {
+    msg += `\n❌ Failed: ${failCount}\n\nFailed Files:\n- ` + failList.join("\n- ");
+  }
+
+  alert(msg);
+
+  e.target.value = "";
+});
+
+/* --- PDF → text extraction with fallback to canvas+OCR --- */
+async function tpPdfToImageBlob(file){
+  const arrayBuffer = await file.arrayBuffer();
+  const buf = arrayBuffer.slice(0);
+  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({scale:2});
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width; canvas.height = viewport.height;
+  const ctx = canvas.getContext('2d');
+  await page.render({canvasContext:ctx, viewport}).promise;
+  return await new Promise(resolve => canvas.toBlob(resolve,'image/png'));
+}
+
+async function extractTextFromPdfOrImage(file){
+  const ext = (file.name.split('.').pop()||'').toLowerCase();
+  if(['png','jpg','jpeg'].includes(ext)){
+    const r = await Tesseract.recognize(file,'eng',{logger:m=>{}});
+    return r?.data?.text || '';
+  }
+  // try text-layer using pdf.js
+  try{
+    const arrayBuffer = await file.arrayBuffer();
+    const buf = arrayBuffer.slice(0);
+    const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+    let text = '';
+    const pages = Math.min(pdf.numPages, 3);
+    for(let p=1;p<=pages;p++){
+      const pg = await pdf.getPage(p);
+      const content = await pg.getTextContent();
+      text += content.items.map(i=>i.str).join(' ') + '\n';
+    }
+    if(text.trim().length > 10) return text;
+  } catch(e){ console.warn('PDF text extraction failed', e); }
+  // fallback rasterize + OCR
+  try{
+    const blob = await tpPdfToImageBlob(file);
+    const r = await Tesseract.recognize(blob,'eng',{logger:m=>{}});
+    return r?.data?.text || '';
+  } catch(e){
+    console.error('OCR fallback failed', e);
+    return '';
+  }
+}
+
+/* --- Parser tuned to your certificate text (based on provided raw) --- */
+function parseFieldsFromText_TP(raw) {
+    let t = (raw || "")
+        .replace(/\r|\n/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    // Utility: find text after a label
+    function after(label) {
+        let idx = t.toLowerCase().indexOf(label.toLowerCase());
+        if (idx === -1) return "";
+        return t.substring(idx + label.length).trim();
+    }
+
+    let parsed = {};
+
+    // Certificate No
+let certBlock = after("Certificate").slice(0, 50); // take small chunk
+let match = certBlock.match(/([A-Z0-9]{3,10}\s*\/\s*[0-9]{3,10})/i);
+
+parsed.certificateNo = match
+  ? match[1].replace(/\s+/g, "")
+  : "";
+
+
+
+
+
+
+    // Owner (line AFTER 'Date of Inspection:')
+    let ownerBlock = after("Date of Inspection:");
+    parsed.owner = (ownerBlock.match(/([A-Z ]{5,})\s+\d{2}[-\/]\d{2}[-\/]\d{4}/) || ["",""])
+                    [1].trim();
+
+    // Inspection Date
+    parsed.inspectionDate =
+        (t.match(/Date of Inspection:\s*[A-Z ]*\s*(\d{2}[-\/]\d{2}[-\/]\d{4})/) || ["",""])[1];
+
+    // Model / Type (MRT294 appears AFTER 'Owner's Distinguishing')
+    parsed.modelType =
+        (after("Owner's Distinguishing Marie or No.:").match(/([A-Z0-9]+)\s+[A-Z0-9]+/) || ["",""])[1];
+
+    // Crane Name (TC-05 is the second token after Owner's Distinguishing)
+    parsed.craneName =
+        (after("Owner's Distinguishing Marie or No.:").match(/[A-Z0-9]+\s+([A-Z0-9\-]+)/) || ["",""])[1];
+
+    // Serial No
+    parsed.serialNo =
+        (after("serial   No.:").match(/([0-9]+)/) || ["",""])[1];
+
+    // Year of Manufacturing
+    parsed.yearManufacturing =
+        (after("Year of Manufacturing:").match(/(19[0-9]{2}|20[0-9]{2})/) || ["",""])[1];
+
+    // Height Under Hook
+    parsed.heightUnderHook =
+        (after("Height Under the Hook:").match(/([0-9]+m)/i) || ["",""])[1];
+
+    // Jib Length
+    parsed.jibLength =
+        (after("length of Jib:").match(/([0-9]+m)/i) || ["",""])[1];
+
+    // Next Inspection Due
+    parsed.nextInspectionDue =
+        (after("Next Inspection Due:").match(/(\d{2}[-\/]\d{2}[-\/]\d{4})/) || ["",""])[1];
+
+    return parsed;
+}
+
+
+
+/* Process uploaded file -> entry object */
+async function tpProcessFile(file){
+  const blobUrl = URL.createObjectURL(file);
+  const entry = { fileName:file.name, fileBlobUrl:blobUrl, pageCount:1, parsed:{} };
+  const text = await extractTextFromPdfOrImage(file);
+  entry.rawText = text;
+  entry.parsed = parseFieldsFromText_TP(text);
+
+  // determine pageCount best-effort
+  try{ const buf = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument({data:buf}).promise; entry.pageCount = pdf.numPages; } catch(e){ entry.pageCount = 1; }
+
+  return entry;
+}
+
+/* Rebuild filters (crane list) */
+function tpRebuildFilters(){
+  const craneSelect = document.getElementById('tpFilterCrane');
+  const cranes = Array.from(new Set(tpState.items.map(it=> (it.parsed.craneName||'').trim()).filter(Boolean))).sort();
+  craneSelect.innerHTML = '<option value="">All Cranes</option>' + cranes.map(c=>`<option>${tpEscape(c)}</option>`).join('');
+}
+
+/* Renderer with pagination */
+function tpRenderTable(){
+  const tbody = document.getElementById('tpTbody'); tbody.innerHTML='';
+  const q = document.getElementById('tpSearch')?.value.trim().toLowerCase() || '';
+
+// ---- DATE FILTERS ----
+const startDate = document.getElementById("tpFilterStart")?.value || "";
+const endDate   = document.getElementById("tpFilterEnd")?.value || "";
+const filterType = document.getElementById("tpFilterType")?.value || "";  
+// choices: "inspection" or "expiry"
+
+// convert to comparable YYYY-MM-DD
+function normalizeDate(d){
+    if(!d) return "";
+    let parts = d.split("-");
+    return `${parts[0]}-${parts[1]}-${parts[2]}`;
+}
+
+const ns = normalizeDate(startDate);
+const ne = normalizeDate(endDate);
+
+
+
+  const rowsPerPage = parseInt(document.getElementById('rowsPerPageTp')?.value || 20);
+  tpState.rowsPerPage = rowsPerPage;
+const arr = tpState.items.filter(it=>{
+    const p = it.parsed || {};
+
+    // --- SEARCH ---
+    if (q) {
+        const searchText = JSON.stringify(p).toLowerCase() + " " + (it.fileName || "").toLowerCase();
+        if (!searchText.includes(q)) return false;
+    }
+
+    // --- DATE FILTER LOGIC ---
+    if (filterType) {
+        let targetDate =
+            filterType === "inspection" ? p.inspectionDate :
+            filterType === "expiry" ? p.nextInspectionDue :
+            "";
+
+        if (targetDate) {
+            // convert DD/MM/YYYY → YYYY-MM-DD
+            let m = targetDate.match(/([0-3]?\d)[\/\-]([0-1]?\d)[\/\-](\d{2,4})/);
+            if (m) {
+                let yr = m[3].length === 2 ? "20" + m[3] : m[3];
+                targetDate = `${yr}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+            }
+        } else {
+            return false;
+        }
+
+        // apply date range
+        if (ns && targetDate < ns) return false;
+        if (ne && targetDate > ne) return false;
+    }
+
+    return true;
+});
+
+  const total = arr.length;
+  const pages = Math.max(1, Math.ceil(total/rowsPerPage));
+  if(tpState.page > pages) tpState.page = pages;
+  const start = (tpState.page-1)*rowsPerPage;
+  const pageItems = arr.slice(start, start+rowsPerPage);
+
+  pageItems.forEach(it=>{
+    const p = it.parsed || {};
+    let statusText = '';
+    const now = new Date();
+    if(p.nextInspectionDue){
+      const parts = p.nextInspectionDue.match(/([0-3]?\d)[\/\-\s]([0-1]?\d)[\/\-\s]([0-9]{2,4})/);
+      if(parts){
+        const yr = parts[3].length===2 ? ('20'+parts[3]) : parts[3];
+        const due = new Date(`${yr}-${parts[2].padStart(2,'0')}-${parts[1].padStart(2,'0')}`);
+        const diffDays = Math.ceil((due - now)/(1000*60*60*24));
+        if(diffDays < 0) statusText = 'Expired';
+        else if(diffDays <= 30) statusText = 'Near Expire';
+        else statusText = 'Valid';
+      }
+    } else {
+      statusText = 'Unknown';
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${tpEscape(p.craneName||'')}</td>
+      <td>${tpEscape(p.certificateNo||'')}</td>
+      <td>${tpEscape(p.inspectionDate||'')}</td>
+      <td>${tpEscape(p.owner||'')}</td>
+      <td>${tpEscape((p.modelType||'') + (p.serialNo ? ' / ' + p.serialNo : ''))}</td>
+      <td>${tpEscape(p.nextInspectionDue||'')}</td>
+      <td><span class="badge" style="background:${statusText==='Expired'? '#ef4444' : (statusText==='Near Expire'? '#f59e0b' : '#16a34a')}">${tpEscape(statusText)}</span></td>
+      <td>${new Date(it.uploadedAt).toLocaleString()}</td>
+      <td><button class="btn ghost" onclick="tpDownload('${it.fileBlobUrl}','${encodeURIComponent(it.fileName)}')">Download</button></td>
+      <td><button class="btn ghost" onclick="tpEdit('${it.id}')">Edit</button> <button class="btn ghost" onclick="tpDelete('${it.id}')">Delete</button> ${it.isLatest?'<span style="color:green;font-weight:700">Latest</span>':''}</td>`;
+
+// right-click to open history log for this crane
+tr.addEventListener('contextmenu', function(ev){
+  ev.preventDefault();
+  const crane = (p.craneName || '').trim();
+  if (!crane) {
+    alert('No crane name for this row.');
+    return;
+  }
+  openTpHistory(crane);
+});
+
+    tbody.appendChild(tr);
+  });
+
+  // pager
+  const pager = document.getElementById('tpPager'); pager.innerHTML = '';
+  pager.appendChild(createPagerButtons(total, tpState, tpRenderTable));
+}
+
+/* simple pager helper */
+function createPagerButtons(total, stateObj, renderFn){
+  const container = document.createElement('div');
+  const size = stateObj.rowsPerPage;
+  const pages = Math.max(1, Math.ceil(total/size));
+  const makeBtn=(txt,cb,dis)=>{ const b=document.createElement('button'); b.textContent=txt; b.disabled=!!dis; if(!dis) b.onclick=cb; return b; };
+  container.appendChild(makeBtn('<<', ()=>{ stateObj.page=1; renderFn(); }, stateObj.page===1));
+  container.appendChild(makeBtn('<', ()=>{ if(stateObj.page>1) stateObj.page--; renderFn(); }, stateObj.page===1));
+  const info = document.createElement('div'); info.style.padding='6px 10px'; info.style.color='var(--muted)'; info.textContent = `Page ${stateObj.page} / ${pages} (${total})`; container.appendChild(info);
+  container.appendChild(makeBtn('>', ()=>{ if(stateObj.page<pages) stateObj.page++; renderFn(); }, stateObj.page===pages));
+  container.appendChild(makeBtn('>>', ()=>{ stateObj.page=pages; renderFn(); }, stateObj.page===pages));
+  return container;
+}
+
+/* download */
+function tpDownload(blobUrl, filename){
+  const a = document.createElement('a'); a.href = blobUrl; a.download = decodeURIComponent(filename||'certificate.pdf'); document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* edit (modal) */
+function tpEdit(id){
+  const it = tpState.items.find(x=>x.id===id); if(!it) return;
+  const v = it.parsed || {};
+  const body = document.getElementById('modalBody'); document.getElementById('modalTitle').textContent = 'Edit Certificate'; document.getElementById('modal').style.display='flex';
+  body.innerHTML = `<div class="form-row"><input id="ep_crane" placeholder="Crane Name" value="${tpEscape(v.craneName||'')}"><input id="ep_cert" placeholder="Certificate No" value="${tpEscape(v.certificateNo||'')}"></div>
+  <div class="form-row"><input id="ep_owner" placeholder="Owner" value="${tpEscape(v.owner||'')}"><input id="ep_model" placeholder="Model" value="${tpEscape(v.modelType||'')}"></div>
+  <div class="form-row"><input id="ep_ins" placeholder="Inspection Date" value="${tpEscape(v.inspectionDate||'')}"><input id="ep_next" placeholder="Next Inspection Due" value="${tpEscape(v.nextInspectionDue||'')}"></div>
+  <div style="display:flex; gap:8px; justify-content:flex-end;"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" id="ep_save">Save</button></div>`;
+  setTimeout(()=>{ document.getElementById('ep_save').onclick = ()=>{ v.craneName = document.getElementById('ep_crane').value.trim(); v.certificateNo = document.getElementById('ep_cert').value.trim(); v.owner = document.getElementById('ep_owner').value.trim(); v.modelType = document.getElementById('ep_model').value.trim(); v.inspectionDate = document.getElementById('ep_ins').value.trim(); v.nextInspectionDue = document.getElementById('ep_next').value.trim(); it.parsed = v; tpSave(); closeModal(); tpRenderTable(); }; },50);
+}
+
+/* delete */
+function tpDelete(id){ if(!confirm('Delete certificate?')) return; const idx = tpState.items.findIndex(x=>x.id===id); if(idx>=0){ tpState.items.splice(idx,1); tpSave(); tpRenderTable(); } }
+// Open history modal for a crane (shows previous versions + download links)
+function openTpHistory(craneName) {
+  const logs = tpState.history[craneName] || [];
+  if (!logs.length) {
+    alert('No previous history for ' + craneName);
+    return;
+  }
+
+  // build HTML (simple list)
+  let html = `<div style="max-height:60vh; overflow:auto;">`;
+  html += `<h3>History — ${tpEscape(craneName)}</h3>`;
+  logs.slice().reverse().forEach((h, idx) => {
+    const i = logs.length - idx; // show 1 = latest previous
+    html += `<div style="padding:8px;border-bottom:1px solid #eee;margin-bottom:6px;">
+      <div><b>Record ${i} (saved: ${new Date(h.savedAt).toLocaleString()})</b></div>
+      <div>Certificate: ${tpEscape(h.parsed.certificateNo||'')}</div>
+      <div>Inspection: ${tpEscape(h.parsed.inspectionDate||'')}</div>
+      <div>Owner: ${tpEscape(h.parsed.owner||'')}</div>
+      <div>Next Due: ${tpEscape(h.parsed.nextInspectionDue||'')}</div>
+      <div style="margin-top:6px;">
+        ${h.fileBlobUrl ? `<button class="btn ghost" onclick="tpDownload('${h.fileBlobUrl}','${encodeURIComponent(h.fileName||('history_'+craneName+'_'+i+'.pdf'))}')">Download File</button>` : ''}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // show in modal
+  document.getElementById('modalTitle').textContent = 'History: ' + craneName;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+/* exports */
+document.getElementById('tpExportXlsx').addEventListener('click', ()=>{
+  const rows = tpState.items.map(it=>({
+    Crane: it.parsed.craneName||'', CertificateNo: it.parsed.certificateNo||'', InspectionDate: it.parsed.inspectionDate||'', Owner: it.parsed.owner||'', Model: it.parsed.modelType||'', Serial: it.parsed.serialNo||'', NextInspectionDue: it.parsed.nextInspectionDue||'', FileName: it.fileName, Uploaded: new Date(it.uploadedAt).toLocaleString()
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'ThirdPartyCerts'); XLSX.writeFile(wb, 'third_party_certificates.xlsx');
+});
+
+document.getElementById('tpExportPdf').addEventListener('click', ()=>{
+  const el = document.getElementById('tpTable'); html2pdf().from(el).save('third_party_certificates.pdf');
+});
+
+/* search / page size handlers */
+document.getElementById('tpSearch').addEventListener('input', ()=>{ tpState.page=1; tpRenderTable(); });
+document.getElementById('rowsPerPageTp').addEventListener('change', ()=>{ tpState.page=1; tpRenderTable(); });
+
+/* initial load */
+tpLoad();
+tpRenderTable();
+function clearActiveMenus() {
+    // Clear main menu active states
+    document.querySelectorAll('.topnav button').forEach(btn =>
+        btn.classList.remove('active')
+    );
+
+    // Clear report submenu active states
+    document.querySelectorAll('.dropdown-content a').forEach(a =>
+        a.classList.remove('active')
+    );
+}
+
+/*------OverStay FUnction-------*/
+function daysBetween(d1, d2) {
+    return Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
+}
+function getOverstayOperators() {
+    const today = new Date();
+
+    return state.operators
+        .filter(o => o.leaveSince)  // must have leave since
+        .map(o => {
+            let status = "";
+            let daysAway = 0;
+
+            // ----------------------------
+            // 1️⃣ Leave > 6 Months Logic
+            // ----------------------------
+            const ls = new Date(o.leaveSince);
+            const diff6m = daysBetween(ls, today);
+
+            if (diff6m > 180) {
+                status = "Leave > 6 months";
+                daysAway = diff6m;     // show days since leave
+                return { ...o, daysAway, osStatus: status };
+            }
+
+            // ------------------------------------------------------
+            // 2️⃣ Overstay Logic (only if leave till exists)
+            // ------------------------------------------------------
+            if (o.leaveTill) {
+                const lt = new Date(o.leaveTill);
+
+                // ignore if leaveTill is in future
+                if (lt <= today) {
+                    const diffOs = daysBetween(lt, today);
+                    if (diffOs > 10) {
+                        status = "Overstay";
+                        daysAway = diffOs;
+                        return { ...o, daysAway, osStatus: status };
+                    }
+                }
+            }
+
+            return null;
+        })
+        .filter(o => o);
+}
+
+
+let opOsPage = 1;
+
+function renderOpOsReport() {
+    const tbody = document.getElementById("opOsTbody");
+    tbody.innerHTML = "";
+
+    const q = document.getElementById("opOsSearch").value.toLowerCase();
+    const statusF = document.getElementById("opOsFilterStatus").value;
+
+    let arr = getOverstayOperators();
+
+    if (q)
+        arr = arr.filter(o =>
+            (o.name + o.employeeId).toLowerCase().includes(q)
+        );
+
+    if (statusF === "Overstay")
+        arr = arr.filter(o => o.osStatus === "Overstay");
+
+    if (statusF === "Leave6m")
+        arr = arr.filter(o => o.osStatus === "Leave > 6 months");
+
+    const size = parseInt(document.getElementById("rowsPerPageOpOs").value);
+    const total = arr.length;
+
+    const pages = Math.max(1, Math.ceil(total / size));
+    if (opOsPage > pages) opOsPage = pages;
+
+    const start = (opOsPage - 1) * size;
+    const pageItems = arr.slice(start, start + size);
+
+    pageItems.forEach(o => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${o.employeeId}</td>
+            <td>${o.name}</td>
+            <td>${o.leaveSince}</td>
+            <td>${o.leaveTill || "-"}</td>
+            <td>${o.daysAway}</td>
+            <td>${o.osStatus}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    renderOpOsPager(total, size);
+}
+function renderOpOsPager(total, size) {
+    const pager = document.getElementById("opOsPager");
+    pager.innerHTML = "";
+
+    const pages = Math.max(1, Math.ceil(total / size));
+
+    const makeBtn = (txt, cb, dis) => {
+        const b = document.createElement("button");
+        b.textContent = txt;
+        b.disabled = dis;
+        if (!dis) b.onclick = cb;
+        return b;
+    };
+
+    pager.appendChild(makeBtn("<<", () => { opOsPage = 1; renderOpOsReport(); }, opOsPage === 1));
+    pager.appendChild(makeBtn("<", () => { if (opOsPage > 1) opOsPage--; renderOpOsReport(); }, opOsPage === 1));
+
+    const info = document.createElement("div");
+    info.style.padding = "6px 10px";
+    info.textContent = `Page ${opOsPage} / ${pages} (${total})`;
+    pager.appendChild(info);
+
+    pager.appendChild(makeBtn(">", () => { if (opOsPage < pages) opOsPage++; renderOpOsReport(); }, opOsPage === pages));
+    pager.appendChild(makeBtn(">>", () => { opOsPage = pages; renderOpOsReport(); }, opOsPage === pages));
+}
+document.getElementById("opOsExportPdf").addEventListener("click", function () {
+    const element = document.getElementById("opOsTable");
+    const opt = {
+        margin: 10,
+        filename: "operator_overstay.pdf",
+        image: { type: "jpeg", quality: 1 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+    };
+    html2pdf().set(opt).from(element).save();
+});
+function openOverstayView() {
+    document.getElementById("opOverstayWrap").style.display = "block";
+    document.getElementById("thirdPartyWrap").style.display = "none";
+    document.getElementById("mgmtWrap").style.display = "none";
+    document.getElementById("operatorsWrap").style.display = "none";
+    document.getElementById("mapArea").style.display = "none";
+    document.getElementById("leftPanel").style.display = "none";
+
+    renderOpOsReport();
+}
+document.getElementById("opOsClose").addEventListener("click", function() {
+    document.getElementById("opOverstayWrap").style.display = "none";
+    state.view = "live";
+    updateView();
+});
+
+
+
+
+
+
+
+</script>
+
+
+
+
+<!-- INSPECTION CHECKLIST MODAL -->
+<div class="modal-back" id="checklistModal" style="display:none; z-index:15000;">
+  <div class="modal" style="width:900px; max-height:90vh; overflow:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3>Inspection Checklist</h3>
+      <div style="display:flex; gap:10px;">
+        <button class="btn primary" id="printChecklist">Click to Open</button>
+        <button class="btn primary" id="pdfChecklist">Download PDF</button>
+        <button class="btn ghost" id="closeChecklist">Close</button>
+      </div>
+    </div>
+    <div id="checklistContent" style="margin-top:40px;"></div>
+  </div>
+</div>
+<script type="text/template" id="tpl_hoist">
+<div style="font-family:Segoe UI, sans-serif; font-size:13px;">
+
+  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:20px; margin-bottom:10px;">
+    <img src="NPClogo.png" style="height:90px;">
+    <div style="text-align:center; font-size:20px; font-weight:bold;">PLANT DEPARTMENT<br>
+    <span style="font-size:17px;">PASSENGER HOIST INSPECTION CHECKLIST</span></div>
+    <img src="Trojanlogo.png" style="height:90px;">
+  </div>
+
+  <table border="2" style="width:100%; border-collapse:collapse; font-size:15px; font-weight:bold;">
+    <tr>
+        <td style="padding:6px;">Brand :</td>
+        <td style="padding:6px; font-weight:600;">{{brand}}</td>
+        <td style="padding:6px;">Model :</td>
+        <td style="padding:6px; font-weight:600;">{{model}}</td>
+    </tr>
+
+    <tr>
+        <td style="padding:6px;">Ownership :</td>
+        <td style="padding:6px; font-weight:600;">NPC / Trojan</td>
+        <td style="padding:6px;">Project Ref# :</td>
+        <td style="padding:6px; font-weight:600;">{{project}}</td>
+    </tr>
+
+    <tr>
+        <td style="padding:6px;">Inspection Date :</td>
+        <td style="padding:6px; font-weight:600;">{{date}}</td>
+        <td style="padding:6px;">Asset# :</td>
+        <td style="padding:6px; font-weight:600;">{{asset}}</td>
+    </tr>
+
+    <tr>
+        <td style="padding:6px;">Project :</td>
+        <td style="padding:6px; font-weight:600;">{{project}}</td>
+        <td style="padding:6px;">Location :</td>
+        <td style="padding:6px; font-weight:600;">{{location}}</td>
+    </tr>
+</table>
+
+
+  <table border="2" style="width:100%; margin-top:15px; border-collapse:collapse;">
+    <tr>
+      <th>Sr.No.</th>
+      <th>Check Item</th>
+      <th colspan="2">Compliance</th>
+      <th>Remarks</th>
+    </tr>
+
+    <!-- All 24 rows exactly like your image -->
+ <tr>
+        <td rowspan="1"></td>
+        <td rowspan="1"></td>
+<td style="text-align:center;">Yes</td>
+<td style="text-align:center;">No</td>
+ <td rowspan="1"></td>
+    </tr>
+    <tr><td>1</td><td>Third Party Certificate</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+
+    <tr><td>2</td><td>Operator’s Certificate</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>3</td><td>Electrical Cable</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+ <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>4</td><td>Motor</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>5</td><td>Brake System</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>6</td><td>Rack and Pinion</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>7</td><td>Roller</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>8</td><td>Reducing Device (Reduction Gear Box)</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>9</td><td>Guide Roller</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>10</td><td>Safety Device</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>11</td><td>Greasing</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+ <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>12</td><td>Cable Wheel</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>13</td><td>Counterweight</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>14</td><td>Wire Rope</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+ <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>15</td><td>Overload Pin</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>16</td><td>Overload Bell</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>17</td><td>Operating Lever</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>18</td><td>Cage Shutter & Lock</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>19</td><td>Cage Neatness</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>20</td><td>Landing Position</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>21</td><td>Section Bolts & Nuts</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>22</td><td>Ties</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>23</td><td>Present Height</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>24</td><td>Safety Limit Switches</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+  </table>
+
+<div style="margin-top:20px; font-weight:bold;">Comments (if Any):</div>
+
+<textarea style="
+    margin-top:8px;
+    height:120px;
+    width:100%;
+    border:2px solid #000;
+    border-radius:6px;
+    padding:10px;
+    resize:vertical;
+    font-size:14px;
+"></textarea>
+
+  <div style="margin-top:10px;">
+    Technician Involved: _________________________________________________________
+  </div>
+
+  <div style="margin-top:10px;">
+    Inspected by (Hoist Sr. Foreman): ____________________________________________
+  </div>
+
+  <div style="margin-top:20px;">
+    Reviewed and Approved by Workshop Manager: ___________________________________
+  </div>
+
+</div>
+</script>
+
+
+<!------------ INSPECTION CHEKLIST TOWER CRANE ---------->
+
+
+<script type="text/template" id="tpl_tower">
+<div style="font-family:Segoe UI, sans-serif; font-size:13px;">
+
+  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:20px; margin-bottom:10px;">
+    <img src="NPClogo.png" style="height:90px;">
+    <div style="text-align:center; font-size:20px; font-weight:bold;">PLANT DEPARTMENT<br>
+    <span style="font-size:17px;">TOWE CRANE INSPECTION CHECKLIST</span></div>
+    <img src="Trojanlogo.png" style="height:90px;">
+  </div>
+
+  <table border="2" style="width:100%; border-collapse:collapse; font-size:15px; font-weight:bold;">
+    <tr>
+        <td style="padding:6px;">Brand :</td>
+        <td style="padding:6px; font-weight:600;">{{brand}}</td>
+        <td style="padding:6px;">Model :</td>
+        <td style="padding:6px; font-weight:600;">{{model}}</td>
+    </tr>
+
+    <tr>
+        <td style="padding:6px;">Ownership :</td>
+        <td style="padding:6px; font-weight:600;">NPC / Trojan</td>
+        <td style="padding:6px;">Project Ref# :</td>
+        <td style="padding:6px; font-weight:600;">{{project}}</td>
+    </tr>
+
+    <tr>
+        <td style="padding:6px;">Inspection Date :</td>
+        <td style="padding:6px; font-weight:600;">{{date}}</td>
+        <td style="padding:6px;">Asset# :</td>
+        <td style="padding:6px; font-weight:600;">{{asset}}</td>
+    </tr>
+
+    <tr>
+        <td style="padding:6px;">Project :</td>
+        <td style="padding:6px; font-weight:600;">{{project}}</td>
+        <td style="padding:6px;">Location :</td>
+        <td style="padding:6px; font-weight:600;">{{location}}</td>
+    </tr>
+</table>
+
+
+  <table border="2" style="width:100%; margin-top:15px; border-collapse:collapse;">
+    <tr>
+      <th>Sr.No.</th>
+      <th>Check Item</th>
+      <th colspan="2">Compliance</th>
+      <th>Remarks</th>
+    </tr>
+
+    <!-- All 24 rows exactly like your image -->
+ <tr>
+        <td rowspan="1"></td>
+        <td rowspan="1"></td>
+<td style="text-align:center;">Yes</td>
+<td style="text-align:center;">No</td>
+ <td rowspan="1"></td>
+    </tr>
+    <tr><td>1</td><td>Third Party Certificate</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+
+    <tr><td>2</td><td>Operator’s Certificate</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>3</td><td>Electrical Cable</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+ <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>4</td><td>Motor</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>5</td><td>Brake System</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>6</td><td>Rack and Pinion</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>7</td><td>Roller</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>8</td><td>Reducing Device (Reduction Gear Box)</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>9</td><td>Guide Roller</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>10</td><td>Safety Device</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>11</td><td>Greasing</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+ <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>12</td><td>Cable Wheel</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>13</td><td>Counterweight</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>14</td><td>Wire Rope</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+ <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>15</td><td>Overload Pin</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>16</td><td>Overload Bell</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>17</td><td>Operating Lever</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>18</td><td>Cage Shutter & Lock</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>19</td><td>Cage Neatness</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>20</td><td>Landing Position</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>21</td><td>Section Bolts & Nuts</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>22</td><td>Ties</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>23</td><td>Present Height</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>24</td><td>Safety Limit Switches</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+  </table>
+
+<div style="margin-top:20px; font-weight:bold;">Comments (if Any):</div>
+
+<textarea style="
+    margin-top:8px;
+    height:120px;
+    width:100%;
+    border:2px solid #000;
+    border-radius:6px;
+    padding:10px;
+    resize:vertical;
+    font-size:14px;
+"></textarea>
+
+  <div style="margin-top:10px;">
+    Technician Involved: _________________________________________________________
+  </div>
+
+  <div style="margin-top:10px;">
+    Inspected by (Tower Crane Sr. Foreman): ____________________________________________
+  </div>
+
+  <div style="margin-top:20px;">
+    Reviewed and Approved by Workshop Manager: ___________________________________
+  </div>
+
+</div>
+</script>
+
+<!------------ INSPECTION CHEKLIST GANTRY CRANE ---------->
+
+<script type="text/template" id="tpl_gantry">
+
+<div style="font-family:Segoe UI, sans-serif; font-size:13px;">
+
+  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:20px; margin-bottom:10px;">
+    <img src="NPClogo.png" style="height:90px;">
+    <div style="text-align:center; font-size:20px; font-weight:bold;">PLANT DEPARTMENT<br>
+    <span style="font-size:17px;">GANTRY CRANE INSPECTION CHECKLIST</span></div>
+    <img src="Trojanlogo.png" style="height:90px;">
+  </div>
+
+  <table border="2" style="width:100%; border-collapse:collapse; font-size:15px; font-weight:bold;">
+    <tr>
+        <td style="padding:6px;">Brand :</td>
+        <td style="padding:6px; font-weight:600;">{{brand}}</td>
+        <td style="padding:6px;">Model :</td>
+        <td style="padding:6px; font-weight:600;">{{model}}</td>
+    </tr>
+
+    <tr>
+        <td style="padding:6px;">Ownership :</td>
+        <td style="padding:6px; font-weight:600;">NPC / Trojan</td>
+        <td style="padding:6px;">Project Ref# :</td>
+        <td style="padding:6px; font-weight:600;">{{project}}</td>
+    </tr>
+
+    <tr>
+        <td style="padding:6px;">Inspection Date :</td>
+        <td style="padding:6px; font-weight:600;">{{date}}</td>
+        <td style="padding:6px;">Asset# :</td>
+        <td style="padding:6px; font-weight:600;">{{asset}}</td>
+    </tr>
+
+    <tr>
+        <td style="padding:6px;">Project :</td>
+        <td style="padding:6px; font-weight:600;">{{project}}</td>
+        <td style="padding:6px;">Location :</td>
+        <td style="padding:6px; font-weight:600;">{{location}}</td>
+    </tr>
+</table>
+
+
+  <table border="2" style="width:100%; margin-top:15px; border-collapse:collapse;">
+    <tr>
+      <th>Sr.No.</th>
+      <th>Check Item</th>
+      <th colspan="2">Compliance</th>
+      <th>Remarks</th>
+    </tr>
+
+    <!-- All 24 rows exactly like your image -->
+ <tr>
+        <td rowspan="1"></td>
+        <td rowspan="1"></td>
+<td style="text-align:center;">Yes</td>
+<td style="text-align:center;">No</td>
+ <td rowspan="1"></td>
+    </tr>
+    <tr><td>1</td><td>Third Party Certificate</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+
+    <tr><td>2</td><td>Operator’s Certificate</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>3</td><td>Electrical Cable</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+ <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>4</td><td>Motor</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>5</td><td>Brake System</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>6</td><td>Rack and Pinion</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>7</td><td>Roller</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>8</td><td>Reducing Device (Reduction Gear Box)</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>9</td><td>Guide Roller</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>10</td><td>Safety Device</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>11</td><td>Greasing</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+ <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>12</td><td>Cable Wheel</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>13</td><td>Counterweight</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>14</td><td>Wire Rope</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+ <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>15</td><td>Overload Pin</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>16</td><td>Overload Bell</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>17</td><td>Operating Lever</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>18</td><td>Cage Shutter & Lock</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>19</td><td>Cage Neatness</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>20</td><td>Landing Position</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>21</td><td>Section Bolts & Nuts</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>22</td><td>Ties</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>23</td><td>Present Height</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+    <tr><td>24</td><td>Safety Limit Switches</td>  <td style="text-align:center;"><input type="checkbox"></td>
+  <td style="text-align:center;"><input type="checkbox"></td>
+  <td><input type="text" style="width:100%; border:none; outline:none; background:transparent;"></td>
+
+  </table>
+
+<div style="margin-top:20px; font-weight:bold;">Comments (if Any):</div>
+
+<textarea style="
+    margin-top:8px;
+    height:120px;
+    width:100%;
+    border:2px solid #000;
+    border-radius:6px;
+    padding:10px;
+    resize:vertical;
+    font-size:14px;
+"></textarea>
+
+  <div style="margin-top:10px;">
+    Technician Involved: _________________________________________________________
+  </div>
+
+  <div style="margin-top:10px;">
+    Inspected by (Gantry Crane Sr. Foreman): ____________________________________________
+  </div>
+
+  <div style="margin-top:20px;">
+    Reviewed and Approved by Workshop Manager: ___________________________________
+  </div>
+
+</div>
+
+</script>
+
+
+<!--
+===============================
+ OPEN CHECKLIST MODAL
+ =============================== 
+-->
+<script>
+document.getElementById("openChecklistBtn").addEventListener("click", () => {
+
+    if (!state.selectedId) {
+        alert("Please select a crane first.");
+        return;
+    }
+
+    const item = state.items.find(crane => crane.id === state.selectedId);
+    if (!item) {
+        alert("Crane not found.");
+        return;
+    }
+
+    // Decide template based on type
+  let templateId = "tpl_tower";
+
+const type = item.type ? item.type.toLowerCase() : "";
+
+if (type.includes("hoist")) {
+    templateId = "tpl_hoist";
+}
+else if (type.includes("gantry")) {
+    templateId = "tpl_gantry";
+}
+
+
+    let tpl = document.getElementById(templateId).innerHTML;
+// AUTO-GENERATE ASSET NO FROM CRANE NAME  
+let autoAsset = "";
+if (item.name) {
+    // If name is like TC-101 or PH-102
+    const match = item.name.match(/-(\d+)/);
+    autoAsset = item.name;     // full code like TC-101
+
+}
+    // Auto-fill fields
+    const today = new Date().toISOString().split("T")[0];
+    const loc = item.lng > 55.1 ? "Dubai" : (item.lng < 54 ? "Sharjah" : "Abu Dhabi");
+
+    tpl = tpl
+        .replace(/{{brand}}/g, item.brand || "")
+        .replace(/{{model}}/g, item.model || "")
+        .replace(/{{brand_model}}/g, (item.brand + " " + item.model) || "")
+        .replace(/{{date}}/g, today)
+        .replace(/{{asset}}/g, autoAsset)   // <-- UPDATED LINE
+        .replace(/{{serial}}/g, item.serial || "")
+        .replace(/{{project}}/g, item.site || "")
+
+        .replace(/{{project_ref}}/g, item.project || "")
+        .replace(/{{location}}/g, loc);
+
+    // Load into modal
+    document.getElementById("checklistContent").innerHTML = tpl;
+// ===============================
+// MAKE YES/NO CHECKBOXES MUTUALLY EXCLUSIVE
+// ===============================
+document.querySelectorAll("#checklistContent table tr").forEach(row => {
+    const yes = row.querySelector("td:nth-child(3) input[type='checkbox']");
+    const no  = row.querySelector("td:nth-child(4) input[type='checkbox']");
+
+    if (yes && no) {
+        yes.addEventListener("change", () => {
+            if (yes.checked) no.checked = false;
+        });
+        no.addEventListener("change", () => {
+            if (no.checked) yes.checked = false;
+        });
+    }
+});
+
+    // Show modal
+    document.getElementById("checklistModal").style.display = "flex";
+});
+
+
+// ===============================
+// CLOSE CHECKLIST MODAL
+// ===============================
+document.getElementById("closeChecklist").addEventListener("click", () => {
+    document.getElementById("checklistModal").style.display = "none";
+});
+
+
+// ===============================
+// PRINT CHECKLIST
+// ===============================
+document.getElementById("printChecklist").addEventListener("click", () => {
+    const content = document.getElementById("checklistContent").innerHTML;
+
+    const printWindow = window.open("", "_blank");
+// copy your stylesheet if needed
+printWindow.document.write('<style>input[type="checkbox"]{accent-color:black;}</style>');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Checklist Print Preview</title>
+                <style>
+                    body { font-family: Segoe UI, sans-serif; padding:20px; }
+                    .btnPrint {
+                        background:#2e8b57;
+                        color:white;
+                        padding:8px 12px;
+                        border:none;
+                        border-radius:6px;
+                        cursor:pointer;
+                        font-size:14px;
+                        margin-bottom:20px;
+                    }
+                    table td {
+                        padding:4px;
+                    }
+                    table input[type="checkbox"] {
+                        transform: scale(1.3);
+                    }
+                </style>
+            </head>
+            <body>
+                <button class="btnPrint" onclick="window.print()">Print</button>
+                ${content}
+            </body>
+        </html>
+    `);
+printWindow.document.write(`
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll("tr").forEach(row => {
+        const yes = row.querySelector("td:nth-child(3) input[type='checkbox']");
+        const no  = row.querySelector("td:nth-child(4) input[type='checkbox']");
+        
+        if (yes && no) {
+            yes.addEventListener("change", () => {
+                if (yes.checked) no.checked = false;
+            });
+            no.addEventListener("change", () => {
+                if (no.checked) yes.checked = false;
+            });
+        }
+    });
+});
+<\/script>
+`);
+printWindow.document.write('</body></html>');
+    printWindow.document.close();
+});
+
+
+
+// ===============================
+// DOWNLOAD PDF (FIXED)
+// ===============================
+document.getElementById("pdfChecklist").addEventListener("click", () => {
+
+    const wrapper = document.createElement("div");
+    wrapper.style.padding = "20px";
+    wrapper.innerHTML = document.getElementById("checklistContent").innerHTML;
+
+    // Ensure checkboxes display correctly in PDF
+    wrapper.querySelectorAll("input[type='checkbox']").forEach(cb => {
+        if (cb.checked) cb.setAttribute("checked", "checked");
+    });
+
+    const opt = {
+        margin: 5,
+        filename: 'inspection-checklist.pdf',
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: { scale: 3, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf()
+    .set(opt)
+    .from(wrapper)
+    .toPdf()
+    .get('pdf')
+    .then(pdf => { pdf.save('inspection-checklist.pdf'); })
+    .catch(err => console.error('PDF ERROR:', err));
+
+});
+
+</script>
+</body>
+</html>
