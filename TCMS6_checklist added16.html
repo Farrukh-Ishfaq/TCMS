@@ -725,7 +725,8 @@ const firebaseConfig = {
   apiKey: "AIzaSyBZDlrwckUEtD4kDnHIKnx9w9krocMB3jE",
   authDomain: "tower-crane-management-d356b.firebaseapp.com",
   projectId: "tower-crane-management-d356b",
-  storageBucket: "tower-crane-management-d356b.firebasestorage.app",
+  storageBucket: "tower-crane-management-d356b.appspot.com"
+
   messagingSenderId: "276707162879",
   appId: "1:276707162879:web:8fb185eb8ee4985aa1eaca",
   measurementId: "G-LH108YJHTS"
@@ -1950,17 +1951,11 @@ const batch = db.batch();
 }
 
 async function uploadThirdPartyCertificate(file, certNo) {
-    const path = `third_party_certificates/${certNo}_${Date.now()}_${file.name}`;
-    const ref = storage.ref().child(path);
+  const path = `third_party_certs/${Date.now()}_${file.name}`;
+  const ref = storage.ref(path);
 
-    await ref.put(file);
-    const url = await ref.getDownloadURL();
-
-    return {
-        fileUrl: url,
-        storagePath: path,
-        fileName: file.name
-    };
+  await ref.put(file);
+  return await ref.getDownloadURL();
 }
 async function saveThirdPartyCert(data) {
     await db.collection("third_party_certs").add({
@@ -3116,3 +3111,4 @@ document.getElementById("pdfChecklist").addEventListener("click", () => {
 </script>
 </body>
 </html>
+
