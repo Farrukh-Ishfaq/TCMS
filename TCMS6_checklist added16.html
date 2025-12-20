@@ -25,11 +25,9 @@
 
 <!-- Tesseract.js (browser OCR) -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
-<!-- place this in <head> or before your JS that uses Tesseract -->
-<script src="https://unpkg.com/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
-
-
-
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 <style>
   :root{
     --left-w: 270px;
@@ -598,55 +596,6 @@ table thead th {
   </div>
 </div>
 
-<!-- OPERATOR THIRD-PARTY PANEL -->
-<div class="panel-wrap" id="opThirdPartyWrap" style="display:none;">
-  <div class="panel">
-    <div class="panel-header">
-      <div class="filters-left">
-        <input id="optpSearch" class="search" placeholder="Search Employee ID / Name / Certificate No">
-        <input id="optpFrom" type="date" class="small" placeholder="From">
-        <input id="optpTo" type="date" class="small" placeholder="To">
-      </div>
-
-      <div class="actions-right">
-        <label class="small btn ghost" style="display:inline-flex; gap:8px; align-items:center;">
-          Import PDF/Image <input type="file" id="optpImport" accept=".pdf,.png,.jpg,.jpeg" multiple style="display:none" />
-        </label>
-
-        <button id="optpExportXlsx" class="small">Export XLSX</button>
-        <button id="optpExportPdf" class="small">Export PDF</button>
-
-        <select id="rowsPerPageOptp" class="small"><option>10</option><option selected>20</option></select>
-        <button id="optpClose" class="btn ghost">Close</button>
-      </div>
-    </div>
-
-    <div style="overflow:auto; margin-top:12px;">
-      <table class="table" id="optpTable">
-        <thead>
-          <tr>
-            <th>Employee ID</th>
-            <th>Operator Name</th>
-            <th>Certificate No</th>
-            <th>Date Issued</th>
-            <th>Expiry Date</th>
-            <th>Status</th>
-            <th>Uploaded</th>
-            <th>Download</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="optpTbody"></tbody>
-      </table>
-    </div>
-
-    <div style="display:flex; align-items:center; gap:12px; justify-content:flex-end; margin-top:12px;">
-      <div id="optpPager" class="pager"></div>
-    </div>
-  </div>
-</div>
-
-
 <!-- OPERATOR OVERSTAY REPORT PANEL -->
 <div class="panel-wrap" id="opOverstayWrap" style="display:none;">
   <div class="panel">
@@ -767,13 +716,36 @@ table thead th {
 </div>
 <script>
 /* ======================
-   Data & state (localStorage demo)
+   Data & Firebase Setup
    ====================== */
 const PAGE_SIZE_DEFAULT = 10;
-const STORAGE_KEY = 'tcms_data_v3';
+
+// TODO: Replace with your actual Firebase Project Config
+const firebaseConfig = {
+  apiKey: "AIzaSyBZDlrwckUEtD4kDnHIKnx9w9krocMB3jE",
+  authDomain: "tower-crane-management-d356b.firebaseapp.com",
+  projectId: "tower-crane-management-d356b",
+  storageBucket: "tower-crane-management-d356b.firebasestorage.app",
+  messagingSenderId: "276707162879",
+  appId: "1:276707162879:web:8fb185eb8ee4985aa1eaca",
+  measurementId: "G-LH108YJHTS"
+};
+
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+// Initialize Storage
+const storage = firebase.storage();
+// Fix PDF.js Worker Error
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.worker.min.js';
+// Enable Offline Persistence (Saves reads on refresh)
+db.settings({
+  cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
+merge: true
+});
 
 let state = {
-  view: 'live', // live | mgmt | operators
+  view: 'live',
   items: [],
   page: 1,
   mgmtPage: 1,
@@ -781,25 +753,51 @@ let state = {
   operators: []
 };
 
-function uid(){ return 'id_'+Math.random().toString(36).slice(2,9); }
-function loadData(){
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if(!raw){
-    // seed
-    state.items = [
-      { id: uid(), type:'tower crane', name:'TC-101',foundation:"Travelling System", site:'Sports Hotel',brand:"Potain", model:'MC 205 B', serial:'350030', asset:'170405028', lat:24.4605, lng:54.3710, height:50, jib:60, status:'Working', notes:'', createdAt:Date.now() },
-      { id: uid(), type:'passenger hoist', name:'PH-05', site:'Mall A', model:'Alimak 200', serial:'H005', asset:'H170', lat:24.4550, lng:54.3788, height:30, jib:0, status:'Idle', notes:'', createdAt:Date.now() },
-      { id: uid(), type:'gantry crane', name:'GC-02', site:'Port Area', model:'Potain G', serial:'G778', asset:'G300', lat:24.4480, lng:54.3840, height:0, jib:0, status:'Maintenance', notes:'', createdAt:Date.now() }
-    ];
-    state.operators = [
-      { id: uid(), employeeId:'EMP001', name:'Ali Khan', designation:'Operator', craneType:'Tower Crane', craneName:'TC-101', contact:'0500001111', leaveSince:'', leaveTill:'', status:'Active', remarks:'' }
-    ];
-    saveData();
-  } else {
-    try { const parsed = JSON.parse(raw); state.items = parsed.items || []; state.operators = parsed.operators || []; } catch(e){ state.items = []; state.operators = []; }
-  }
+// --- REAL-TIME LISTENERS ---
+function initRealtimeListeners() {
+    // 1. Listen to 'cranes' collection
+    db.collection("cranes").onSnapshot((snapshot) => {
+        state.items = [];
+        snapshot.forEach((doc) => {
+            let data = doc.data();
+            data.id = doc.id; // Use Firestore ID
+            state.items.push(data);
+        });
+        refreshView(); // Auto-update UI
+    });
+
+    // 2. Listen to 'operators' collection
+    db.collection("operators").onSnapshot((snapshot) => {
+        state.operators = [];
+        snapshot.forEach((doc) => {
+            let data = doc.data();
+            data.id = doc.id; // Use Firestore ID
+            state.operators.push(data);
+        });
+        refreshView(); // Auto-update UI
+    });
+
+// 3. Listen to Third Party Certs
+db.collection("third_party_certs").onSnapshot((snapshot) => {
+    tpState.items = [];
+    snapshot.forEach((doc) => {
+        let data = doc.data();
+        data.id = doc.id;
+        tpState.items.push(data);
+    });
+    tpRenderTable();
+});
+
 }
-function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify({ items: state.items, operators: state.operators })); }
+
+// Start listeners immediately
+initRealtimeListeners();
+
+// Replaces the old uid() - Firestore generates IDs automatically
+function uid(){ return 'id_'+Math.random().toString(36).slice(2,9); }
+
+
+// The listeners handle loading, and direct DB calls handle saving.
 
 /* ======================
    Map & markers
@@ -1004,7 +1002,13 @@ const opDetails = op ? `${escapeHtml(op.name)} (${escapeHtml(op.employeeId)})` :
   renderPager(total,'mgmt','mgmtPage');
 }
 
-function deleteMgmt(id){ if(!confirm('Delete crane?')) return; const idx = state.items.findIndex(x=>x.id===id); if(idx>=0){ state.items.splice(idx,1); saveData(); refreshView(); } }
+function deleteMgmt(id) {
+    if (!confirm('Delete crane?')) return;
+    db.collection("cranes").doc(id).delete().catch(err => {
+        alert("Error deleting: " + err.message);
+    });
+    
+}
 
 /* ======================
    Modal logic for Management
@@ -1034,36 +1038,74 @@ function openMgmtModal(editId=null){
     <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" id="fm_save">${isEdit? 'Save': 'Add'}</button></div>
   `;
   // set selected values after DOM injection
-  setTimeout(()=>{ document.getElementById('fm_type').value = it.type || 'tower crane'; document.getElementById('fm_status').value = it.status || 'Working'; document.getElementById('modal').style.display='flex'; document.getElementById('fm_save').onclick = ()=>{ const payload = { name: document.getElementById('fm_name').value.trim(), type: document.getElementById('fm_type').value, site: document.getElementById('fm_site').value.trim(), model: document.getElementById('fm_model').value.trim(),brand: document.getElementById('fm_brand').value.trim(),foundation: document.getElementById('fm_foundation').value, 
- serial: document.getElementById('fm_serial').value.trim(), asset: document.getElementById('fm_asset').value.trim(), lat: parseFloat(document.getElementById('fm_lat').value) || 0, lng: parseFloat(document.getElementById('fm_lng').value) || 0, height: document.getElementById('fm_height').value.trim(), jib: parseFloat(document.getElementById('fm_jib').value) || 0, status: document.getElementById('fm_status').value, notes: document.getElementById('fm_notes').value.trim(), createdAt: Date.now() }; if(isEdit){ const idx = state.items.findIndex(x=>x.id===editId); if(idx>=0) state.items[idx] = {...state.items[idx], ...payload}; } else { payload.id = uid(); state.items.push(payload); }
+  setTimeout(()=>{ document.getElementById('fm_type').value = it.type || 'tower crane'; document.getElementById('fm_status').value = it.status || 'Working'; document.getElementById('modal').style.display='flex'; 
+
+document.getElementById('fm_save').onclick = async () => {
+    const btn = document.getElementById('fm_save');
+    btn.disabled = true; // Prevent double clicks
+    btn.textContent = "Saving...";
+
+    const payload = {
+        name: document.getElementById('fm_name').value.trim(),
+        type: document.getElementById('fm_type').value,
+        site: document.getElementById('fm_site').value.trim(),
+        model: document.getElementById('fm_model').value.trim(),
+        brand: document.getElementById('fm_brand').value.trim(),
+        foundation: document.getElementById('fm_foundation').value,
+        serial: document.getElementById('fm_serial').value.trim(),
+        asset: document.getElementById('fm_asset').value.trim(),
+        lat: parseFloat(document.getElementById('fm_lat').value) || 0,
+        lng: parseFloat(document.getElementById('fm_lng').value) || 0,
+        height: document.getElementById('fm_height').value.trim(),
+        jib: parseFloat(document.getElementById('fm_jib').value) || 0,
+        status: document.getElementById('fm_status').value,
+        notes: document.getElementById('fm_notes').value.trim(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+
+try {
+        if (isEdit) {
+            // Update existing document
+            await db.collection("cranes").doc(editId).update(payload);
+        } else {
+            // Add new document
+            payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection("cranes").add(payload);
+        }
+        closeModal();
+        // refreshView() is called automatically by onSnapshot!
+    } catch (error) {
+        console.error("Error saving crane:", error);
+        alert("Error saving data: " + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = isEdit ? 'Save' : 'Add';
+    }
+
 
 // =========================
 // AUTO-UNASSIGN OPERATORS IF CRANE STATUS BECOMES IDLE OR MAINTENANCE
 // =========================
 if (payload.status === "Idle" || payload.status === "Maintenance") {
-
-    state.operators.forEach(op => {
-        if (op.craneName === payload.name) {
-
-            // Remove crane assignment
-            op.craneName = "";
-            op.craneType = "";
-
-            // Set operator status to Operator IDLE
-            op.status = "Operator IDLE";
-
-            // Set leaveSince date automatically
-            op.leaveSince = new Date().toISOString().split("T")[0];
-
-            // Clear leaveTill
-            op.leaveTill = "";
-        }
-    });
-}
+        // Find operators assigned to this crane and update them in Firestore
+        const assignedOps = state.operators.filter(op => op.craneName === payload.name);
+        assignedOps.forEach(op => {
+            db.collection("operators").doc(op.id).update({
+                craneName: "",
+                craneType: "",
+                status: "Operator IDLE",
+                leaveSince: new Date().toISOString().split("T")[0],
+                leaveTill: ""
+            });
+        });
+    }
 
 
 
- saveData(); closeModal(); refreshView(); }; }, 50);
+
+
+ refreshView(); }; }, 50);
 }
 
 /* ======================
@@ -1253,13 +1295,16 @@ document.getElementById("fo_shift").addEventListener("change", function () {
    // bind to changes
     document.getElementById('fo_status').addEventListener('change', updateDateFieldState);
 
-document.getElementById('fo_save').onclick = ()=>{
+document.getElementById('fo_save').onclick = async () => {
+    const btn = document.getElementById('fo_save');
+    btn.disabled = true;
+    btn.textContent = "Saving...";
 
     const payload = {
         employeeId: document.getElementById('fo_empid').value.trim(),
         name: document.getElementById('fo_name').value.trim(),
         designation: document.getElementById('fo_designation').value.trim(),
-shift: document.getElementById('fo_shift').value,
+        shift: document.getElementById('fo_shift').value,
         craneType: document.getElementById('fo_cranetype').value,
         craneName: document.getElementById('fo_cranename').value,
         contact: document.getElementById('fo_contact').value.trim(),
@@ -1267,31 +1312,22 @@ shift: document.getElementById('fo_shift').value,
         leaveSince: document.getElementById('fo_leave_since').value || '',
         leaveTill: document.getElementById('fo_leave_till').value || '',
         status: document.getElementById('fo_status').value,
-        remarks: document.getElementById('fo_remarks').value.trim()
+        remarks: document.getElementById('fo_remarks').value.trim(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
-
-// --------------------------------------------------------------
-//  Prevent assigning Idle or Maintenance cranes
-// --------------------------------------------------------------
-if (payload.craneName) {
-    const selectedCrane = state.items.find(c => c.name === payload.craneName);
-
-    if (selectedCrane && 
-        (selectedCrane.status.toLowerCase() === "idle" ||
-         selectedCrane.status.toLowerCase() === "maintenance")) {
-
-        alert("This crane is currently Idle or under Maintenance.\nYou cannot assign it to an operator.");
-        return;
+// --- Validation Logic (Keep existing logic) ---
+    if (payload.craneName) {
+        const selectedCrane = state.items.find(c => c.name === payload.craneName);
+        if (selectedCrane && (selectedCrane.status.toLowerCase() === "idle" || selectedCrane.status.toLowerCase() === "maintenance")) {
+            alert("This crane is currently Idle or under Maintenance.\nYou cannot assign it to an operator.");
+            btn.disabled = false; btn.textContent = "Save"; return;
+        }
     }
-}
-
-// --------------------------------------------------------
-//  If status is ACTIVE → crane must be selected
-// --------------------------------------------------------
-if (payload.status === "Active" && (!payload.craneName || payload.craneName === "")) {
-    alert("Please select a crane before activating this operator.");
-    return;
-}
+    if (payload.status === "Active" && (!payload.craneName || payload.craneName === "")) {
+        alert("Please select a crane before activating this operator.");
+        btn.disabled = false; btn.textContent = "Save"; return;
+    }
+    // ... (Keep the Date validation logic here unchanged) ...
 
   // --------------------------------------------------------
 //  DATE VALIDATION ONLY when STATUS is NOT Active
@@ -1319,37 +1355,34 @@ if (payload.status !== "Active") {
     }
 }
 
- 
-    // --------------------------------------------------------
-    // 🔥 ADDED LOGIC — Auto-remove crane when not active
-    // --------------------------------------------------------
-    if (payload.status === "On Leave" || payload.status === "Resigned" || payload.status === "Operator IDLE") {
-        payload.craneName = "";            // remove assigned crane
-	payload.craneType = "";     // 🔥 clear crane type
+// Logic: Clear crane info if not active
+    if (payload.status !== "Active") {
+        payload.craneName = "";
+        payload.craneType = "";
     }
-
-    // --------------------------------------------------------
-    // 🔥 ADDED LOGIC — When switching back to ACTIVE
-    // clear leaveSince & leaveTill
-    // --------------------------------------------------------
     if (payload.status === "Active") {
         payload.leaveSince = "";
         payload.leaveTill = "";
     }
 
-    // SAVE LOGIC
-    if (isEdit) {
-        const idx = state.operators.findIndex(x => x.id === editId);
-        if (idx >= 0) state.operators[idx] = { ...state.operators[idx], ...payload };
-    } else {
-        payload.id = uid();
-        state.operators.push(payload);
+ try {
+        if (isEdit) {
+            await db.collection("operators").doc(editId).update(payload);
+        } else {
+            payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection("operators").add(payload);
+        }
+        closeModal();
+    } catch (error) {
+        console.error("Error saving operator:", error);
+        alert("Error saving: " + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = isEdit ? 'Save' : 'Add';
     }
-
-    saveData();
-    closeModal();
-    renderOperators();
 };
+    renderOperators();
+
  }, 50);
 }
 
@@ -1361,7 +1394,12 @@ if (statusFilter && o.status !== statusFilter) return false;
  if(!q) return true; return `${o.employeeId} ${o.name} ${o.craneName} ${o.contact}`.toLowerCase().includes(q); }); const size = parseInt(document.getElementById('rowsPerPageOp').value || PAGE_SIZE_DEFAULT); const total = arr.length; const pages = Math.max(1, Math.ceil(total/size)); if(state.opPage>pages) state.opPage = pages; const start = (state.opPage-1)*size; const pageItems = arr.slice(start, start+size); pageItems.forEach(o=>{ const tr = document.createElement('tr');
 
  tr.innerHTML = `<td>${escapeHtml(o.employeeId||'')}</td><td>${escapeHtml(o.name||'')}</td><td>${escapeHtml(o.designation||'')}</td><td>${escapeHtml(o.shift||'')}</td><td>${escapeHtml(o.craneType||'')}</td><td>${escapeHtml(findCraneName(o.craneName)||o.craneName||'')}</td><td>${escapeHtml(o.contact||'')}</td><td>${escapeHtml(o.joiningDate||'')}</td><td>${escapeHtml(o.leaveSince||'')}</td><td>${escapeHtml(o.leaveTill||'')}</td><td>${escapeHtml(o.status||'')}</td><td>${escapeHtml(o.remarks||'')}</td><td><button class="btn ghost" onclick="openOpModal('${o.id}')">Edit</button> <button class="btn ghost" onclick="deleteOperator('${o.id}')">Delete</button></td>`; tbody.appendChild(tr); }); renderPager(total,'op','opPage'); }
-function deleteOperator(id){ if(!confirm('Delete operator?')) return; const idx=state.operators.findIndex(x=>x.id===id); if(idx>=0){ state.operators.splice(idx,1); saveData(); renderOperators(); } }
+function deleteOperator(id) {
+    if (!confirm('Delete operator?')) return;
+    db.collection("operators").doc(id).delete().catch(err => {
+        alert("Error deleting: " + err.message);
+    });
+}
 
 /* Utility */
 function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -1430,6 +1468,12 @@ map.on('click', function(e){
    ====================== */
 function refreshView(){ if(state.view==='live'){ renderLiveList(); refreshMarkersForType(null); } if(state.view==='mgmt'){ renderMgmtTable(); } if(state.view==='operators'){ renderOperators(); } }
 function updateView() {
+
+if (state.view === 'dashboard') {
+    document.getElementById('dashboardWrap').style.display = 'block';
+    renderDashboard();
+}
+
     document.getElementById('mapArea').style.display =
         (state.view === 'live') ? 'block' : 'none';
 
@@ -1460,13 +1504,12 @@ function updateView() {
 /* ======================
    Init
    ====================== */
-loadData(); updateView();
+ updateView();
 
 /* small keyboard shortcuts for testing */
 //document.addEventListener('keydown', (e)=>{ if(e.key==='1'){ state.view='live'; updateView(); setActiveNav('navLive'); } if(e.key==='2'){ state.view='mgmt'; updateView(); //setActiveNav('navMgmt'); } if(e.key==='3'){ state.view='operators'; updateView(); setActiveNav('navOps'); } });
 
-/* save on unload */
-window.addEventListener('beforeunload', ()=> saveData());
+
 
 /*-----Tower Crane – EXPORT CSV----->*/
 
@@ -1539,7 +1582,7 @@ document.getElementById("mgmtImport").addEventListener("change", function (e) {
             });
         });
 
-        saveData();
+        
         renderMgmtTable();
         alert("Import completed!");
     };
@@ -1600,15 +1643,13 @@ document.getElementById("opImport").addEventListener("change", function (e) {
             });
         });
 
-        saveData();
+        
         renderOperators();
         alert("Operator import complete!");
     };
 
     reader.readAsArrayBuffer(file);
 });
-
-
 
 /* ===== Tower Crane Third-Party Module (single cleaned version) ===== */
 const TP_STORAGE_KEY = 'tcms_thirdparty_certs_v2';
@@ -1619,21 +1660,7 @@ tpState.history = tpState.history || {}; // { "<Crane Name>": [ { entrySnapshot 
 /* small escape helper (keeps consistent with rest of file) */
 function tpEscape(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-/* load/save functions */
-function tpLoad(){
-  try{
-    const raw = JSON.parse(localStorage.getItem(TP_STORAGE_KEY) || '{}');
-    tpState.items = raw.items || [];
-    tpState.history = raw.history || {};
-  }catch(e){
-    tpState.items = [];
-    tpState.history = {};
-  }
-  tpRebuildFilters();
-}
-function tpSave(){
-  localStorage.setItem(TP_STORAGE_KEY, JSON.stringify({ items: tpState.items, history: tpState.history }));
-}
+
 
 
 
@@ -1661,19 +1688,6 @@ rep_tc.addEventListener('click', (e) => {
     tpRenderTable();
 });
 
-document.getElementById('rep_op_thirdparty').addEventListener('click', (e)=>{
-  e.preventDefault(); e.stopPropagation();
-  clearActiveMenus();
-  document.getElementById('navReports').classList.add('active');
-  document.getElementById('rep_op_thirdparty').classList.add('active');
-  // hide others
-  document.getElementById('thirdPartyWrap').style.display = 'none';
-  document.getElementById('mgmtWrap').style.display = 'none';
-  document.getElementById('operatorsWrap').style.display = 'none';
-  document.getElementById('opThirdPartyWrap').style.display = 'block';
-  state.view = 'operator_thirdparty';
-  optpLoad(); optpRenderTable();
-});
 
 
 
@@ -1707,6 +1721,7 @@ document.getElementById("opOsClose").addEventListener("click", function() {
 });
 
 /* File import handler (single & bulk) */
+/* File import handler (Updated for Firebase) */
 document.getElementById('tpImport').addEventListener('change', async function(e){
   const files = Array.from(e.target.files || []);
   if (!files.length) return;
@@ -1717,61 +1732,75 @@ document.getElementById('tpImport').addEventListener('change', async function(e)
 
   for (const f of files) {
     try {
-      // ---- PROCESS FILE ----
+      // ---- 1. KEEP YOUR PERFECT EXTRACTION LOGIC ----
       const entry = await tpProcessFile(f);
 
-      // -------- CHECK 1: FILE DID NOT PARSE --------
       if (!entry || !entry.parsed) {
         failCount++;
         failList.push(f.name + " (no readable content)");
-        console.warn("No parsed content for:", f.name, entry);
         continue;
       }
 
       const craneName = (entry.parsed.craneName || "").trim();
-
-      // -------- CHECK 2: TOWER CRANE NAME MISSING --------
       if (!craneName) {
         failCount++;
         failList.push(f.name + " (crane name not detected)");
-        console.warn("Crane name not found in:", f.name, entry);
         continue;
       }
 
-      // -------- IF PASSED BASIC CHECK, CONTINUE MERGE --------
-      entry.id = "tp_" + Math.random().toString(36).slice(2, 9);
-      entry.uploadedAt = Date.now();
-      entry.isLatest = true;
+      // ---- 2. UPLOAD PHYSICAL FILE TO FIREBASE STORAGE ----
+      const storageRef = storage.ref(`third_party_certs/${Date.now()}_${f.name}`);
+      const snapshot = await storageRef.put(f);
+      const downloadURL = await snapshot.ref.getDownloadURL();
 
-      // Check if same crane already exists
-      const existingIdx = tpState.items.findIndex(
-        it => (it.parsed?.craneName || "").trim() === craneName && it.isLatest
-      );
+      // ---- 3. PREPARE DATA OBJECT ----
+      const entryData = {
+        parsed: entry.parsed,
+        fileName: f.name,
+        fileUrl: downloadURL, // Store the permanent link
+        uploadedAt: Date.now(),
+        isLatest: true,
+        pageCount: entry.pageCount || 1
+      };
 
-      if (existingIdx !== -1) {
-        // Move old record to history
-        const existing = tpState.items[existingIdx];
-        tpState.history[craneName] = tpState.history[craneName] || [];
+// Upload certificate file to Firebase Storage
+const fileMeta = await uploadThirdPartyCertificate(file, extractedCertNo);
 
-        tpState.history[craneName].push({
-          savedAt: Date.now(),
-          parsed: existing.parsed || {},
-          fileName: existing.fileName || "",
-          fileBlobUrl: existing.fileBlobUrl || "",
-          uploadedAt: existing.uploadedAt || 0,
-          pageCount: existing.pageCount || 1
+// Attach file info
+rowData.fileUrl = fileMeta.fileUrl;
+rowData.storagePath = fileMeta.storagePath;
+rowData.fileName = fileMeta.fileName;
+
+// Save extracted data to Firestore
+await saveThirdPartyCert(rowData);
+
+
+      // ---- 4. SYNC WITH FIRESTORE (Handling History) ----
+      // We check Firestore for existing 'isLatest' records for this crane
+      const existingQuery = await db.collection("third_party_certs")
+        .where("parsed.craneName", "==", craneName)
+        .where("isLatest", "==", true)
+        .get();
+
+      const batch = db.batch();
+
+      if (!existingQuery.empty) {
+        existingQuery.forEach(doc => {
+          const oldData = doc.data();
+          // Move old record to a separate 'history' collection or update status
+          batch.update(doc.ref, { isLatest: false });
+          
+          // Optional: If you want to maintain a history sub-collection
+          const histRef = db.collection("third_party_certs").doc(doc.id).collection("history").doc();
+          batch.set(histRef, { ...oldData, movedToHistoryAt: Date.now() });
         });
-
-        existing.isLatest = false;
-
-        // Replace existing item instead of adding a new row
-        tpState.items[existingIdx] = entry;
-
-      } else {
-        // No existing crane → add new row
-        tpState.items.unshift(entry);
       }
 
+      // Add the new record
+      const newDocRef = db.collection("third_party_certs").doc();
+      batch.set(newDocRef, entryData);
+      
+      await batch.commit();
       successCount++;
 
     } catch (err) {
@@ -1781,22 +1810,14 @@ document.getElementById('tpImport').addEventListener('change', async function(e)
     }
   }
 
-  // -------- SAVE + REFRESH UI --------
-  tpSave();
-  tpRebuildFilters();
-  tpRenderTable();
-
-  // -------- SHOW SUMMARY --------
+  // UI Refreshes automatically if you use the real-time listener below
   let msg = `Import Completed\n\n✔ Successfully imported: ${successCount}`;
   if (failCount > 0) {
     msg += `\n❌ Failed: ${failCount}\n\nFailed Files:\n- ` + failList.join("\n- ");
   }
-
   alert(msg);
-
   e.target.value = "";
 });
-
 /* --- PDF → text extraction with fallback to canvas+OCR --- */
 async function tpPdfToImageBlob(file){
   const arrayBuffer = await file.arrayBuffer();
@@ -1915,6 +1936,7 @@ parsed.certificateNo = match
 
 /* Process uploaded file -> entry object */
 async function tpProcessFile(file){
+const batch = db.batch();
   const blobUrl = URL.createObjectURL(file);
   const entry = { fileName:file.name, fileBlobUrl:blobUrl, pageCount:1, parsed:{} };
   const text = await extractTextFromPdfOrImage(file);
@@ -1926,6 +1948,28 @@ async function tpProcessFile(file){
 
   return entry;
 }
+
+async function uploadThirdPartyCertificate(file, certNo) {
+    const path = `third_party_certificates/${certNo}_${Date.now()}_${file.name}`;
+    const ref = storage.ref().child(path);
+
+    await ref.put(file);
+    const url = await ref.getDownloadURL();
+
+    return {
+        fileUrl: url,
+        storagePath: path,
+        fileName: file.name
+    };
+}
+async function saveThirdPartyCert(data) {
+    await db.collection("third_party_certs").add({
+        ...data,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+
 
 /* Rebuild filters (crane list) */
 function tpRebuildFilters(){
@@ -2017,7 +2061,9 @@ const arr = tpState.items.filter(it=>{
     } else {
       statusText = 'Unknown';
     }
-
+const downloadBtn = it.fileUrl 
+    ? `<a href="${it.fileUrl}" target="_blank" class="btn ghost" style="text-decoration:none;">Download</a>` 
+    : `<span class="muted">No File</span>`;
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${tpEscape(p.craneName||'')}</td>
       <td>${tpEscape(p.certificateNo||'')}</td>
@@ -2027,7 +2073,7 @@ const arr = tpState.items.filter(it=>{
       <td>${tpEscape(p.nextInspectionDue||'')}</td>
       <td><span class="badge" style="background:${statusText==='Expired'? '#ef4444' : (statusText==='Near Expire'? '#f59e0b' : '#16a34a')}">${tpEscape(statusText)}</span></td>
       <td>${new Date(it.uploadedAt).toLocaleString()}</td>
-      <td><button class="btn ghost" onclick="tpDownload('${it.fileBlobUrl}','${encodeURIComponent(it.fileName)}')">Download</button></td>
+      <td>${downloadBtn}</td>
       <td><button class="btn ghost" onclick="tpEdit('${it.id}')">Edit</button> <button class="btn ghost" onclick="tpDelete('${it.id}')">Delete</button> ${it.isLatest?'<span style="color:green;font-weight:700">Latest</span>':''}</td>`;
 
 // right-click to open history log for this crane
@@ -2077,11 +2123,16 @@ function tpEdit(id){
   <div class="form-row"><input id="ep_owner" placeholder="Owner" value="${tpEscape(v.owner||'')}"><input id="ep_model" placeholder="Model" value="${tpEscape(v.modelType||'')}"></div>
   <div class="form-row"><input id="ep_ins" placeholder="Inspection Date" value="${tpEscape(v.inspectionDate||'')}"><input id="ep_next" placeholder="Next Inspection Due" value="${tpEscape(v.nextInspectionDue||'')}"></div>
   <div style="display:flex; gap:8px; justify-content:flex-end;"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" id="ep_save">Save</button></div>`;
-  setTimeout(()=>{ document.getElementById('ep_save').onclick = ()=>{ v.craneName = document.getElementById('ep_crane').value.trim(); v.certificateNo = document.getElementById('ep_cert').value.trim(); v.owner = document.getElementById('ep_owner').value.trim(); v.modelType = document.getElementById('ep_model').value.trim(); v.inspectionDate = document.getElementById('ep_ins').value.trim(); v.nextInspectionDue = document.getElementById('ep_next').value.trim(); it.parsed = v; tpSave(); closeModal(); tpRenderTable(); }; },50);
+  setTimeout(()=>{ document.getElementById('ep_save').onclick = ()=>{ v.craneName = document.getElementById('ep_crane').value.trim(); v.certificateNo = document.getElementById('ep_cert').value.trim(); v.owner = document.getElementById('ep_owner').value.trim(); v.modelType = document.getElementById('ep_model').value.trim(); v.inspectionDate = document.getElementById('ep_ins').value.trim(); v.nextInspectionDue = document.getElementById('ep_next').value.trim(); it.parsed = v; 
+
+ closeModal(); tpRenderTable(); }; },50);
 }
 
 /* delete */
-function tpDelete(id){ if(!confirm('Delete certificate?')) return; const idx = tpState.items.findIndex(x=>x.id===id); if(idx>=0){ tpState.items.splice(idx,1); tpSave(); tpRenderTable(); } }
+function tpDelete(id){ 
+    if(!confirm('Delete certificate?')) return; 
+    db.collection("third_party_certs").doc(id).delete(); 
+}
 // Open history modal for a crane (shows previous versions + download links)
 function openTpHistory(craneName) {
   const logs = tpState.history[craneName] || [];
@@ -2131,7 +2182,7 @@ document.getElementById('tpSearch').addEventListener('input', ()=>{ tpState.page
 document.getElementById('rowsPerPageTp').addEventListener('change', ()=>{ tpState.page=1; tpRenderTable(); });
 
 /* initial load */
-tpLoad();
+
 tpRenderTable();
 function clearActiveMenus() {
     // Clear main menu active states
@@ -2144,218 +2195,6 @@ function clearActiveMenus() {
         a.classList.remove('active')
     );
 }
-
-
-/* ===== Operator Third-Party Module ===== */
-const OP_TP_STORAGE_KEY = 'tcms_op_thirdparty_v1';
-let optpState = { page:1, rowsPerPage:20, items:[], history:{} };
-
-function optpEscape(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-function optpLoad(){
-  try{
-    const raw = JSON.parse(localStorage.getItem(OP_TP_STORAGE_KEY) || '{}');
-    optpState.items = raw.items || [];
-    optpState.history = raw.history || {};
-  }catch(e){ optpState.items = []; optpState.history = {}; }
-}
-function optpSave(){ localStorage.setItem(OP_TP_STORAGE_KEY, JSON.stringify({ items: optpState.items, history: optpState.history })); }
-
-/* --------- Extraction: opTpProcessFile ----------
-   returns an object { parsed: {...}, fileBlobUrl, fileName, pageCount, parsedText, parsed:true }
-   reuses extractTextFromPdfOrImage(file) which exists in your file (pdf.js + Tesseract fallback). 
-   (You already have that helper in the project.) */
-async function opTpProcessFile(file){
-  // get text using the project helper (pdf text layer or OCR)
-  let text = '';
-  try {
-    text = await extractTextFromPdfOrImage(file); // uses pdf.js & Tesseract fallback in your file.
-  } catch(e){ console.warn('OCR/text extraction error', e); text = ''; }
-
-  const low = (text||'').replace(/\r/g,'\n');
-  // heuristics / regex patterns. tune for certificate style you have.
-  const patterns = {
-    employeeId: /\b(Employee\s*ID|Employee\s*No|EMP|ID)[:\s#-]*([A-Z0-9\-]{3,20})\b/i,
-    certNo: /\b(Certificate\s*No|Cert\.*\s*No|Certificate\s*#|Certificate)[:\s#-]*([A-Z0-9\-\/]{3,40})\b/i,
-    // name: try lines with 'Mr.' or 'Name' or just capitalized sequences before nationality/employee id
-    name1: /\b(Name|Operator|Mr\.|Ms\.|Mrs\.)[:\s]*([A-Z][A-Za-z'\s\-]{2,80})/i,
-    dateDMY: /(\b\d{1,2}[\/\-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|[0-9]{1,2})[\/\-\s]\d{2,4}|\b\d{1,2}[\/\-\s]\d{1,2}[\/\-\s]\d{2,4})/i,
-    issueDateLabel: /\b(Date\s*Issued|Issued\s*On|Issue\s*Date)[:\s]*([^\n]+)/i,
-    expiryDateLabel: /\b(Expiry|Expiry\s*Date|Valid\s*Till|Expiry\s*On|Expires)[:\s]*([^\n]+)/i
-  };
-
-  // run patterns
-  const found = {};
-  let m;
-  m = low.match(patterns.employeeId);
-  if(m) found.employeeId = (m[2] || m[1] || '').trim();
-
-  m = low.match(patterns.certNo);
-  if(m) found.certificateNo = (m[2] || m[1] || '').trim();
-
-  // name: try multiple strategies
-  m = low.match(patterns.name1);
-  if(m) found.name = (m[2] || '').trim();
-  if(!found.name){
-    // fallback: look for line with two or three capitalized words
-    const names = low.match(/\b([A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})?)\b/);
-    if(names) found.name = names[1];
-  }
-
-  // dates
-  m = low.match(patterns.issueDateLabel);
-  if(m) {
-    found.dateIssued = m[2].trim().split(/\n/)[0];
-  } else {
-    m = low.match(/\b(Issued|Issue Date|Issued on)[:\s]*([0-9\/\-\sA-Za-z]{6,20})/i);
-    if(m) found.dateIssued = m[2].trim();
-  }
-
-  m = low.match(patterns.expiryDateLabel);
-  if(m) {
-    found.expiryDate = m[2].trim().split(/\n/)[0];
-  } else {
-    // sometimes 'Valid till 02-09-2026'
-    m = low.match(/\b(Valid\s*(till|until)?|Expires|Expiry)[:\s]*([0-9\/\-\sA-Za-z]{6,20})/i);
-    if(m) found.expiryDate = (m[3] || m[2] || '').trim();
-  }
-
-  // last-resort: look for first two dates in document and assume first is issued, second is expiry
-  if(!found.dateIssued || !found.expiryDate){
-    const allDates = [...low.matchAll(/\b\d{1,2}[\/\-\s](?:\d{1,2}|[A-Za-z]{3,})[\/\-\s]\d{2,4}\b/g)].map(x=>x[0]);
-    if(allDates.length>=1 && !found.dateIssued) found.dateIssued = allDates[0];
-    if(allDates.length>=2 && !found.expiryDate) found.expiryDate = allDates[1];
-  }
-
-  // create blob URL for download/view
-  const blobUrl = URL.createObjectURL(file);
-
-  return {
-    parsed: {
-      employeeId: found.employeeId || '',
-      name: found.name || '',
-      certificateNo: found.certificateNo || '',
-      dateIssued: found.dateIssued || '',
-      expiryDate: found.expiryDate || ''
-    },
-    fileBlobUrl: blobUrl,
-    fileName: file.name,
-    pageCount: 1,
-    parsedText: text || '',
-    parsed: true
-  };
-}
-
-/* -------- Import handler: reuse the pattern used by tpImport listener ---------- */
-/* The pattern for tpImport (file loop + process + save + render) is in the project — mirror it. */
-document.getElementById('optpImport').addEventListener('change', async function(e){
-  const files = Array.from(e.target.files || []);
-  if(!files.length) return;
-  let success = 0, fail = 0, failList = [];
-  for(const f of files){
-    try{
-      const entry = await opTpProcessFile(f);
-      if(!entry || !entry.parsed){
-        fail++; failList.push(f.name+' (no readable content)'); continue;
-      }
-      entry.id = 'optp_' + Math.random().toString(36).slice(2,9);
-      entry.uploadedAt = Date.now();
-      // push to top
-      optpState.items.unshift(entry);
-      success++;
-    } catch(err){
-      console.error('Operator import error', err);
-      fail++; failList.push(f.name+' (error)');
-    }
-  }
-  optpSave();
-  optpRenderTable();
-  let msg = `Operator import completed\n✔ Success: ${success}`;
-  if(fail) msg += `\n✖ Failed: ${fail}\n` + failList.join('\n');
-  alert(msg);
-  e.target.value = '';
-});
-
-/* -------- render table (simple) ---------- */
-function optpRenderTable(){
-  const tbody = document.getElementById('optpTbody'); tbody.innerHTML = '';
-  const q = document.getElementById('optpSearch') ? document.getElementById('optpSearch').value.trim().toLowerCase() : '';
-  const arr = optpState.items.filter(it=>{
-    if(!q) return true;
-    const p = it.parsed || {};
-    return (p.employeeId||'').toLowerCase().includes(q) || (p.name||'').toLowerCase().includes(q) || (p.certificateNo||'').toLowerCase().includes(q);
-  });
-  const size = parseInt(document.getElementById('rowsPerPageOptp').value || 20);
-  const total = arr.length;
-  const pages = Math.max(1, Math.ceil(total/size));
-  if(optpState.page > pages) optpState.page = pages;
-  const start = (optpState.page - 1)*size;
-  const pageItems = arr.slice(start, start+size);
-  pageItems.forEach(it=>{
-    const p = it.parsed || {};
-    const tr = document.createElement('tr');
-    const status = (p.expiryDate && new Date(p.expiryDate) < new Date()) ? 'Expired' : 'Valid';
-    tr.innerHTML = `<td>${optpEscape(p.employeeId||'')}</td>
-                    <td>${optpEscape(p.name||'')}</td>
-                    <td>${optpEscape(p.certificateNo||'')}</td>
-                    <td>${optpEscape(p.dateIssued||'')}</td>
-                    <td>${optpEscape(p.expiryDate||'')}</td>
-                    <td><span class="badge" style="background:${status==='Expired' ? '#ef4444' : '#16a34a'}">${status}</span></td>
-                    <td>${new Date(it.uploadedAt).toLocaleString()}</td>
-                    <td><button class="btn ghost" onclick="optpDownload('${it.fileBlobUrl}','${encodeURIComponent(it.fileName)}')">Download</button></td>
-                    <td><button class="btn ghost" onclick="optpEdit('${it.id}')">Edit</button> <button class="btn ghost" onclick="optpDelete('${it.id}')">Delete</button></td>`;
-    tbody.appendChild(tr);
-  });
-
-  // simple pager
-  const pager = document.getElementById('optpPager'); pager.innerHTML = '';
-  const createPager=(total, stateObj, renderFn)=>{
-    const container = document.createElement('div');
-    const pages = Math.max(1, Math.ceil(total/size));
-    const makeBtn = (txt, cb, dis)=>{ const b=document.createElement('button'); b.textContent=txt; b.disabled=!!dis; if(!dis) b.onclick=cb; return b; };
-    container.appendChild(makeBtn('<<', ()=>{ optpState.page = 1; optpRenderTable(); }, optpState.page===1));
-    container.appendChild(makeBtn('<', ()=>{ if(optpState.page>1) optpState.page--; optpRenderTable(); }, optpState.page===1));
-    const info = document.createElement('div'); info.style.padding='6px 10px'; info.style.color='#6b7280'; info.textContent = `Page ${optpState.page} / ${pages} (${total})`; container.appendChild(info);
-    container.appendChild(makeBtn('>', ()=>{ if(optpState.page<pages) optpState.page++; optpRenderTable(); }, optpState.page===pages));
-    container.appendChild(makeBtn('>>', ()=>{ optpState.page = pages; optpRenderTable(); }, optpState.page===pages));
-    return container;
-  };
-  pager.appendChild(createPager(total, optpState, optpRenderTable));
-}
-
-/* helpers */
-function optpDownload(blobUrl, filename){
-  const a = document.createElement('a'); a.href = blobUrl; a.download = decodeURIComponent(filename||'certificate.pdf'); document.body.appendChild(a); a.click(); a.remove();
-}
-function optpEdit(id){
-  const it = optpState.items.find(x=>x.id===id); if(!it) return;
-  const v = it.parsed || {};
-  document.getElementById('modalTitle').textContent = 'Edit Operator Certificate';
-  document.getElementById('modal').style.display = 'flex';
-  document.getElementById('modalBody').innerHTML = `<div class="form-row"><input id="ep_emp" placeholder="Employee ID" value="${optpEscape(v.employeeId||'')}"><input id="ep_name" placeholder="Name" value="${optpEscape(v.name||'')}"></div>
-    <div class="form-row"><input id="ep_certno" placeholder="Certificate No" value="${optpEscape(v.certificateNo||'')}"><input id="ep_issued" placeholder="Date Issued" value="${optpEscape(v.dateIssued||'')}"></div>
-    <div class="form-row"><input id="ep_exp" placeholder="Expiry Date" value="${optpEscape(v.expiryDate||'')}"></div>
-    <div style="display:flex; gap:8px; justify-content:flex-end;"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" id="ep_save">Save</button></div>`;
-  setTimeout(()=>{ document.getElementById('ep_save').onclick = ()=>{ v.employeeId = document.getElementById('ep_emp').value.trim(); v.name = document.getElementById('ep_name').value.trim(); v.certificateNo = document.getElementById('ep_certno').value.trim(); v.dateIssued = document.getElementById('ep_issued').value.trim(); v.expiryDate = document.getElementById('ep_exp').value.trim(); it.parsed = v; optpSave(); closeModal(); optpRenderTable(); }; },50);
-}
-function optpDelete(id){ if(!confirm('Delete record?')) return; const idx = optpState.items.findIndex(x=>x.id===id); if(idx>=0){ optpState.items.splice(idx,1); optpSave(); optpRenderTable(); } }
-
-/* init */
-optpLoad();
-optpRenderTable();
-document.getElementById('optpClose').addEventListener('click', ()=>{ document.getElementById('opThirdPartyWrap').style.display='none'; state.view='live'; updateView(); });
-document.getElementById('optpSearch')?.addEventListener('input', ()=>{ optpState.page=1; optpRenderTable(); });
-document.getElementById('rowsPerPageOptp')?.addEventListener('change', ()=>{ optpState.page=1; optpRenderTable(); });
-document.getElementById('optpExportXlsx').addEventListener('click', ()=>{
-  const rows = optpState.items.map(it=>{
-    const p = it.parsed || {};
-    return { EmployeeID: p.employeeId||'', Name: p.name||'', CertificateNo: p.certificateNo||'', DateIssued: p.dateIssued||'', ExpiryDate: p.expiryDate||'', FileName: it.fileName||'', Uploaded: new Date(it.uploadedAt).toLocaleString() };
-  });
-  const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'OperatorCerts'); XLSX.writeFile(wb, 'operator_thirdparty.xlsx');
-});
-document.getElementById('optpExportPdf').addEventListener('click', ()=>{ const el = document.getElementById('optpTable'); html2pdf().from(el).save('operator_thirdparty.pdf'); });
-
-
 
 /*------OverStay FUnction-------*/
 function daysBetween(d1, d2) {
@@ -2503,40 +2342,6 @@ document.getElementById("opOsClose").addEventListener("click", function() {
     updateView();
 });
 
-
-
-
-// ---- Simple stable Tesseract initialization ----
-// Works reliably with <script src="https://unpkg.com/tesseract.js@2.1.5"></script>
-
-const TESS_LANG_PATH = "https://cdn.jsdelivr.net/gh/tesseract-ocr/tessdata@4.0.0";
-
-async function ocrRecognizeImage(imageBlob) {
-    try {
-        const result = await Tesseract.recognize(
-            imageBlob,
-            "eng",
-            {
-                logger: function(m) { console.log("TESS:", m); },
-                langPath: TESS_LANG_PATH
-            }
-        );
-
-        if (result && result.data && result.data.text) {
-            return result.data.text;
-        } else if (result && result.text) {
-            return result.text;
-        } else {
-            return "";
-        }
-    } catch (e) {
-        console.error("OCR failed:", e);
-        return "";
-    }
-}
-
-// Call this just once at the top
-console.log("Tesseract simple mode ready.");
 
 
 
