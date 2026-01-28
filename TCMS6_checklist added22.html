@@ -2296,7 +2296,7 @@ document.getElementById('mgmtImport').addEventListener('change', function(e) {
             // Prepare the object mapping based on your table headers
             const craneData = {
                 type: row['Type'] || 'tower crane',
-                name: row['Crane Site Name'] || 'Unknown Crane',
+                name: row['Crane Site Name'] || 'Crane IDLE',
                 assetCode: assetCode,
                 operatorDetails: row['Operator Details'] || '',
                 site: row['Site'] || '',
@@ -4719,3 +4719,4 @@ function setActiveNav(id) {
 </script>
 </body>
 </html>
+
