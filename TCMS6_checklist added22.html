@@ -1286,7 +1286,7 @@ document.getElementById("centerBtn").addEventListener("click", function () {
     // Default coordinates – change if needed
     const defaultLat = 24.605079;   // Default Ajban Yard
     const defaultLng = 54.999189;
-    const defaultZoom = 12;
+    const defaultZoom = 16;
 
     map.setView([defaultLat, defaultLng], defaultZoom);
 });
@@ -2504,7 +2504,7 @@ document.getElementById("otpConfirmImport").addEventListener("click", async () =
                     today.setHours(0, 0, 0, 0);
                     const diff = Math.ceil((nextDueObj - today) / (1000 * 60 * 60 * 24));
                     if (diff <= 0) status = "Overdue";
-                    else if (diff <= 30) status = "Near Expiry";
+                    else if (diff <= 3) status = "Near Expiry";
                 }
 
                 // --- DATABASE SYNC ---
@@ -3258,7 +3258,7 @@ async function updateOtpFirebase() {
         const today = new Date(); today.setHours(0,0,0,0);
         const diff = Math.ceil((nextDue - today) / (1000 * 60 * 60 * 24));
         if (diff <= 0) status = "Overdue";
-        else if (diff <= 30) status = "Near Expiry";
+        else if (diff <= 3) status = "Near Expiry";
     }
 
     const updatedData = {
@@ -4556,7 +4556,7 @@ const nearExpiryDays = 3; // Define 'Near Expiry' threshold
                 await sendCertificateEmail(`NEAR EXPIRY: Tower Crane ${data.craneName}`, data, "near_expiry", storageKey);
                 await db.collection("third_party_certs").doc(doc.id).update({ lastAlertStatus: "near_expiry" });
             }
-            // RESET: If the certificate is renewed (diffDays > 30), clear the status so alerts can fire again next year
+            // RESET: If the certificate is renewed (diffDays > 3), clear the status so alerts can fire again next year
             else if (diffDays > nearExpiryDays && data.lastAlertStatus) {
                 await db.collection("third_party_certs").doc(doc.id).update({ lastAlertStatus: null });
             }
@@ -4719,4 +4719,3 @@ function setActiveNav(id) {
 </script>
 </body>
 </html>
-
