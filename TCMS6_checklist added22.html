@@ -26,7 +26,7 @@
       emailjs.init("DykK94msC_KvQNpl2");
    })();
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <!-- Tesseract.js (browser OCR) -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
@@ -52,7 +52,7 @@
     padding:0 10px;
     box-shadow: 0 1px 0 rgba(0,0,0,0.06);
     position:relative;
-    z-index:1200;
+    z-index:2500;
 }
   .brand {font-weight:700; width:160px;}
 
@@ -279,7 +279,7 @@ input[disabled], select[disabled] {
 }
 
 .dropdown:hover .dropbtn {
-    color: linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%);;
+    color: linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%);
 }
 
 .dropdown-content {
@@ -351,80 +351,184 @@ table thead th {
 }
 ///////For Mobile View//////////////
 /* MOBILE RESPONSIVE STYLES */
+/* Update these in your existing @media (max-width: 768px) block */
 @media (max-width: 768px) {
-    /* Stack topbar items */
-    .topbar {
-        height: auto;
-        flex-direction: column;
-        padding: 10px;
-        gap: 10px;
-    }
-    @media (max-width: 768px) {
-    .leaflet-bar a {
-        width: 44px !important;
-        height: 44px !important;
-        line-height: 44px !important;
-    }
-}
     .topnav {
-        display: none; /* Hide standard nav, use a dropdown or button if needed */
-        flex-direction: column;
+        display: none; /* Keep hidden by default */
+        background: #0A2A6A; /* Ensure background matches topbar */
+        position: absolute;
+        top: 64px;
+        left: 0;
         width: 100%;
-    }
-
-    /* Stack sidebar and map */
-    .container {
         flex-direction: column;
-        height: auto;
-        overflow-y: auto;
+        padding: 10px 0;
+        z-index: 1300;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
 
-    .left {
-        width: 100% !important;
-        height: 400px;
-        border-right: none;
-        border-bottom: 1px solid #ddd;
+    /* When menu is active, show it */
+    .topnav.show {
+        display: flex !important;
     }
 
-    .mapwrap {
+    .topnav button {
         width: 100%;
-        height: 400px;
-        flex: none;
+        text-align: left;
+        padding: 12px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 
-    /* Make buttons and inputs bigger for fingers */
-    .btn, .small, .search, input, select {
-        padding: 12px 15px !important;
-        font-size: 16px !important;
+    /* Fix for "white menus not visible" - ensure text is white on dark bg */
+    .topnav button, .dropbtn {
+        color: #ffffff !important;
     }
 
-    /* Tables are hard on mobile - make them scrollable */
-    .panel {
-        padding: 10px;
+    /* Adjust dropdown content for mobile */
+    .dropdown-content {
+        position: static;
+        background: #11337a; /* Slightly lighter than topbar */
         width: 100%;
-        box-sizing: border-box;
+        box-shadow: none;
     }
+}
+/* Add this to allow horizontal scrolling on panels */
+.panel-wrap {
+    overflow-x: auto; /* Enable horizontal scroll */
+    -webkit-overflow-scrolling: touch;
+}
 
-    .table th, .table td {
-        padding: 10px 5px;
-        font-size: 12px;
-    }
+.panel {
+    min-width: 1000px; /* Force a minimum width so it doesn't squeeze */
+    width: max-content; /* Allow it to grow based on content */
+    height: auto;
+}
 
-    /* Ensure modals fit the screen */
-    .modal {
-        width: 95% !important;
-        margin: 10px;
-        padding: 15px;
-    }
+.table {
+    width: 100%;
+    min-width: 800px; /* Ensures the table stays wide enough to read */
+}
 
-    .form-row {
-        flex-direction: column;
+/* Ensure the wrapper doesn't clip the content */
+@media (max-width: 768px) {
+    .panel-wrap {
+        inset: 64px 0 0 0; /* Take full screen width */
+        width: 100vw;
     }
 }
 
+.bg-success { background-color: #2e7d32 !important; } /* Green for Valid */
+.bg-warning { background-color: #ed6c02 !important; } /* Orange for Near Expiry */
+.bg-danger { background-color: #d32f2f !important; }  /* Red for Overdue */
 
+/* Main Dashboard Title Bar */
+.dashboard-main-title {
+    background-color:#0A2A6A; /* Matches your Top Nav Blue */
+    color: white;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.dashboard-main-title h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 
+}
 
+.dashboard-main-title {
+    background-color: #004080; /* Your brand blue */
+    color: white;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    
+    /* Key changes for centering */
+    display: flex;
+    justify-content: center; /* Centers the H2 */
+    align-items: center;
+    position: relative;      /* Allows the span to anchor to the right */
+    min-height: 40px;        /* Ensures consistent height */
+}
+
+.dashboard-main-title h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-align: center;
+}
+
+.dashboard-main-title span {
+    position: absolute;      /* Pulls the span out of the center flow */
+    right: 20px;             /* Pins it to the right edge */
+    font-size: 14px; 
+    opacity: 0.8;
+}
+/* Update #dashboardWrap for the light blue gradient */
+#dashboardWrap {
+    display: none; 
+    position: fixed; 
+    top: 64px; 
+    left: 0; 
+    width: 100%; 
+    height: calc(100vh - 64px); 
+    z-index: 2000; 
+    overflow-y: auto; 
+    background: linear-gradient(to bottom, #E4F0F8 0%, #C8DAE6 100%) !important; /* Changed to Light Blue */
+    padding: 15px; 
+    box-sizing: border-box;
+}
+
+/* Dashboard Card Styling - Changed to White */
+.dash-card {
+    background: #ffffff !important;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #c0d4e0; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+    color: #333 !important; /* Dark text for visibility */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.dash-card h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #0A2A6A !important; /* Navy Blue for contrast */
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 8px;
+}
+
+/* Chart Container Styling - Changed to White */
+.graph-container {
+    background: #ffffff !important;
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid #c0d4e0;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    position: relative;
+    height:93%;
+    min-height: 200px;
+}
+
+/* Status Item Typography - Ensure dark text */
+.status-item {
+    display: flex; 
+    justify-content: space-between; 
+    margin-bottom: 8px; 
+    font-size: 15px;
+    font-weight: 500;
+    color: #333 !important;
+}
 
 
 </style>
@@ -437,7 +541,7 @@ table thead th {
   
   <div class="topnav">
     <button id="navLive" class="active">Live Trace</button>
-<button id="">Dashboard</button>
+<button id="navDashboard">Dashboard</button>
     <button id="navMgmt">Tower Crane Management</button>
     <button id="navOps">Operator/Employee List</button>
 <button id="navMaintenance">Maintenance</button>
@@ -482,7 +586,7 @@ table thead th {
 </div>
 
 <div class="controlsRow" style="margin-top:10px;">
-  <input id="search" class="search" placeholder="Search plate / name / site / model">
+  <input id="search" class="search" placeholder="Search Asset Code / name / site / model">
 </div>
 
 
@@ -517,6 +621,7 @@ table thead th {
     </div>
 
     <div class="dbody" id="detailBody">
+<div class="drow"><div class="dlabel">Crane Site Name</div><div id="d_name">-</div></div>
       <div class="drow"><div class="dlabel">Status</div><div id="d_status">-</div></div>
       <div class="drow"><div class="dlabel">Location (lat, lng)</div><div id="d_coords">-</div></div>
       <div class="drow"><div class="dlabel">Model</div><div id="d_model">-</div></div>
@@ -538,7 +643,7 @@ table thead th {
 
     <!-- LEFT SIDE FILTERS -->
     <div class="filters-left">
-        <input id="mgmtSearch" class="search" placeholder="Search name / site / model">
+        <input id="mgmtSearch" class="search" placeholder="Search AssetCode / name / site / model">
         <select id="mgmtFilterType" class="small">
             <option value="">All Types</option>
             <option value="tower crane">Tower Crane</option>
@@ -554,7 +659,7 @@ table thead th {
         </select>
 <select id="mgmtFilterFoundation" class="small">
     <option value="">All Foundations</option>
-    <option>Travelling System</option>
+    <option>Travelling Under Carriage</option>
     <option>Fixing Angle System</option>
 </select>
 
@@ -587,13 +692,13 @@ table thead th {
 
 </div>
 
-
+<div class="tipBox">💡 Tip: Right-click any row to view History Logs</div>
     <div style="overflow:auto;">
       <table class="table" id="mgmtTable">
         <thead>
 <tr>
   <th>Type</th>
-  <th>Name</th>
+  <th>Crane Site Name</th>
 <th>Asset Code</th> 
   <th>Operator Details</th>
   <th>Site</th>
@@ -619,6 +724,42 @@ table thead th {
   </div>
 </div>
 
+<!-- DASHBOARD PANEL -->
+
+<div id="dashboardWrap" style="display:none; position: fixed; top: 64px; left: 0; width: 100%; height: calc(100vh - 64px); z-index: 2000; overflow-y: auto; background: #1a1a1a; padding: 15px; box-sizing: border-box;">
+<div class="dashboard-main-title">
+        <h2>Tower Crane Management System(Operational Dashboard)</h2>
+        <span style="font-size: 14px; opacity: 0.8;">Live Overview</span>
+    </div>
+    <div style="display: flex; gap: 15px; height: 100%;">
+        
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+
+            <div class="dash-card">
+                <h4>Crane Status</h4>
+                <div id="craneStatusSummary"></div>
+            </div>
+            <div class="dash-card">
+                <h4>Operator Status</h4>
+                <div id="operatorStatusSummary"></div>
+            </div>
+            <div class="dash-card">
+                <h4>TC 3rd Party</h4>
+                <div id="tcThirdPartySummary"></div>
+            </div>
+            <div class="dash-card">
+                <h4>Op 3rd Party</h4>
+                <div id="opThirdPartySummary"></div>
+            </div>
+        </div>
+
+        <div style="flex: 3; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px;">
+            <div class="graph-container"><canvas id="chartCranesPerSite"></canvas></div>
+            <div class="graph-container"><canvas id="chartOperatorStatus"></canvas></div>
+            <div class="graph-container"><canvas id="chartThirdParty"></canvas></div>
+            <div class="graph-container"><canvas id="chartProductivity"></canvas></div> </div>
+    </div>
+</div>
 
 <!-- OPERATORS PANEL -->
 <div class="panel-wrap" id="operatorsWrap">
@@ -666,7 +807,7 @@ table thead th {
 
 </div>
 
-
+<div class="tipBox">💡 Tip: Right-click any row to view Operator Logs</div>
     <div style="overflow:auto; margin-top:12px;">
       <table class="table" id="opTable">
         <thead>
@@ -728,7 +869,7 @@ table thead th {
         <button id="tpClose" class="btn ghost">Close</button>
       </div>
     </div>
-
+<div class="tipBox">💡 Tip: Right-click any row to view Certificate History</div>
     <div style="overflow:auto; margin-top:12px;">
       <table class="table" id="tpTable">
         <thead>
@@ -741,6 +882,7 @@ table thead th {
             <th>Next Due Date</th>
             <th>Status</th>
             <th>Actions</th>
+<th>Download</th>
           </tr>
         </thead>
         <tbody id="tpTbody"></tbody>
@@ -756,7 +898,16 @@ table thead th {
 <div id="tpEditModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
     <div class="modal-content" style="background:white; padding:20px; border-radius:8px; width:400px; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
         <h3>Edit Third Party Certificate</h3>
+        
         <input type="hidden" id="editTpId">
+        <input type="hidden" id="editTpOldUrl"> 
+
+<div style="margin-bottom:10px; border:1px dashed #ccc; padding:10px; background:#f9f9f9;">
+            <label>Upload Certificate (PDF/Img):</label>
+            <input type="file" id="editTpStartFile" accept="application/pdf,image/*" style="width:100%; margin-top:5px;">
+            <div id="tpCurrentFileLabel" style="font-size:11px; color:blue; margin-top:4px;"></div>
+        </div>
+
         <div style="margin-bottom:10px;">
             <label>Crane Name:</label>
             <input type="text" id="editTpCrane" style="width:100%;" disabled>
@@ -765,6 +916,7 @@ table thead th {
             <label>Certificate No:</label>
             <input type="text" id="editTpCert" style="width:100%;">
         </div>
+
         <div style="margin-bottom:10px;">
             <label>Inspection Date:</label>
             <input type="date" id="editTpInspDate" style="width:100%;">
@@ -777,9 +929,10 @@ table thead th {
             <label>Owner:</label>
             <input type="text" id="editTpOwner" style="width:100%;">
         </div>
+
         <div style="display:flex; justify-content:flex-end; gap:10px;">
             <button class="btn ghost" onclick="closeTpModal()">Cancel</button>
-            <button class="btn primary" onclick="updateTpFirebase()">Save Changes</button>
+            <button class="btn primary" id="btnSaveTp" onclick="updateTpFirebase()">Save Changes</button>
         </div>
     </div>
 </div>
@@ -822,7 +975,7 @@ table thead th {
         <button id="otpClose" class="btn ghost">Close</button>
       </div>
     </div>
-
+<div class="tipBox">💡 Tip: Right-click any row to view Certificate History</div>
     <div style="overflow:auto; margin-top:12px;">
       <table class="table" id="otpTable">
         <thead>
@@ -835,6 +988,7 @@ table thead th {
             <th>Next Due Date</th>
             <th>Status</th>
             <th>Actions</th>
+	<th>Downlaod</th>
           </tr>
         </thead>
         <tbody id="otpTbody"></tbody>
@@ -848,7 +1002,53 @@ table thead th {
   </div>
 </div>
 
+<div id="otpEditModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div class="modal-content" style="background:white; padding:20px; border-radius:8px; width:400px; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0;">Edit Operator Certificate</h3>
+            <button onclick="closeOtpModal()" style="border:none; background:none; font-size:20px; cursor:pointer;">&times;</button>
+        </div>
+        <hr style="margin: 15px 0;">
+        
+        <input type="hidden" id="editOtpId">
+        <input type="hidden" id="editOtpOldUrl"> <div class="label-box" style="margin-bottom:12px; border:1px dashed #ccc; padding:10px;">
+        <label>Upload Certificate:</label>
+        <input type="file" id="editOtpFile" accept="application/pdf,image/*">
+        <div id="otpFileLabel" style="font-size:11px; color:blue;"></div>
+    </div>
+<button class="btn primary" id="btnSaveOtp" onclick="updateOtpFirebase()">Save Changes</button>
 
+        <div class="label-box" style="margin-bottom:12px;">
+            <label>Employee Name:</label>
+            <input type="text" id="editOtpName" class="search" style="width:90%;">
+        </div>
+        
+        <div class="label-box" style="margin-bottom:12px;">
+            <label>Certificate No:</label>
+            <input type="text" id="editOtpCert" class="search" style="width:90%;">
+        </div>
+        
+        <div class="label-box" style="margin-bottom:12px;">
+            <label>Inspection Date:</label>
+            <input type="date" id="editOtpInspDate" class="search" style="width:90%;">
+        </div>
+        
+        <div class="label-box" style="margin-bottom:12px;">
+            <label>Next Due Date:</label>
+            <input type="date" id="editOtpNextDue" class="search" style="width:90%;">
+        </div>
+        
+        <div class="label-box" style="margin-bottom:20px;">
+            <label>Owner:</label>
+            <input type="text" id="editOtpOwner" class="search" style="width:90%;">
+        </div>
+        
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button class="btn ghost" onclick="closeOtpModal()">Cancel</button>
+            <button class="btn primary" onclick="updateOtpFirebase()">Save Changes</button>
+        </div>
+    </div>
+</div>
 
 <!-- OPERATOR OVERSTAY REPORT PANEL -->
 <div class="panel-wrap" id="opOverstayWrap" style="display:none;">
@@ -937,6 +1137,27 @@ table thead th {
     </div>
 </div>
 
+<div class="modal-back" id="logModal" style="display:none; z-index:20000;">
+  <div class="modal" style="width:800px; max-height:85vh; display:flex; flex-direction:column;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 id="logModalTitle">Activity Logs</h3>
+        <button class="btn ghost" onclick="document.getElementById('logModal').style.display='none'">Close</button>
+    </div>
+    <div id="logLoader" style="display:none; text-align:center; padding:20px;">Loading logs from server...</div>
+    <div style="overflow:auto; flex:1;">
+        <table class="table" style="width:100%;">
+            <thead>
+                <tr id="logHeaderRow">
+                    </tr>
+            </thead>
+            <tbody id="logTableBody"></tbody>
+        </table>
+    </div>
+  </div>
+</div>
+
+
+
 <script>
 /* ======================
    Data & Firebase Setup
@@ -949,16 +1170,17 @@ const PAGE_SIZE_DEFAULT = 10;
 function calculateDaysAway(dateString) {
     if (!dateString) return 0;
     
+    // Create dates and strip the time portion for accurate day calculation
     const leaveDate = new Date(dateString);
+    leaveDate.setHours(0, 0, 0, 0);
+    
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const diffTime = today - leaveDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
-    // Calculate difference in milliseconds
-    const diffTime = Math.abs(today - leaveDate);
-    
-    // Convert milliseconds to days
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays;
+    return diffDays >= 0 ? diffDays : 0; 
 }
 // TODO: Replace with your actual Firebase Project Config
 const firebaseConfig = {
@@ -1017,14 +1239,29 @@ function initRealtimeListeners() {
 
 // 3. Listen to Third Party Certs
 db.collection("third_party_certs").onSnapshot((snapshot) => {
-    tpState.items = [];
     snapshot.forEach((doc) => {
-        let data = doc.data();
-        data.id = doc.id;
-        tpState.items.push(data);
+        const data = doc.data();
+        const id = doc.id;
+
+        const oldStatus = tpPrevStatusMap[id];
+        const newStatus = data.status; // Valid | Near Expiry | Overdue
+
+        // 🔔 Trigger ONLY when status changes
+        if (
+            oldStatus &&
+            oldStatus !== newStatus &&
+            (newStatus === "Near Expiry" || newStatus === "Overdue")
+        ) {
+            sendThirdPartyExpiryEmail(data);
+        }
+
+        tpPrevStatusMap[id] = newStatus;
     });
+
+    tpState.items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     tpRenderTable();
 });
+
 
 }
 setTimeout(() => {
@@ -1148,12 +1385,12 @@ function addMarker(item){
   if(jibCircles[item.id]) { map.removeLayer(jibCircles[item.id]); delete jibCircles[item.id]; }
   const fill = statusColor(item.status);
   const marker = L.circleMarker([item.lat, item.lng], { radius:9, color:'#fff', weight:2, fillColor:fill, fillOpacity:1 });
-  marker.bindPopup(`<b>${escapeHtml(item.name)}</b><br>${escapeHtml(item.site||'')}`);
+  marker.bindPopup(`<b>${item.assetCode || 'No Asset Code'}</b><br>${item.site || ''}`);
   marker.on('click', ()=> openDetails(item.id));
   clusterGroup.addLayer(marker); markers[item.id] = marker;
   const jibLen = parseFloat(item.jib?.toString().trim() || "0");
-  if (item.type === "tower crane" && jibLen > 0) {
-      const circle = L.circle([item.lat, item.lng], { radius: jibLen, color: "#0070ff80", fillColor: "#0070ff30", fillOpacity: 0.25, weight: 1, });
+  if (item.status !== "Idle" && item.type === "tower crane" && jibLen > 0) {
+      const circle = L.circle([item.lat, item.lng], { radius: jibLen, color: "#0055ff", fillColor: "#0070ff30", fillOpacity: 0.5, weight: 1, });
       circle.addTo(map); jibCircles[item.id] = circle;
   }
 }
@@ -1173,14 +1410,27 @@ function renderLiveList(){
   if(pageItems.length === 0) listEl.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted)">No items</div>`;
   else pageItems.forEach(it=>{
     const card = document.createElement('div'); card.className='card';
-    card.onclick = ()=> { if(it.lat && it.lng){ map.setView([it.lat,it.lng],16); } openDetails(it.id,false); };
+    card.onclick = ()=> { if(it.lat && it.lng){ map.setView([it.lat,it.lng],18); } openDetails(it.id,false); };
     const color = statusColor(it.status);
-    const thumb = document.createElement('div'); thumb.className='thumb'; thumb.style.background=color; thumb.textContent = (it.name||'C').slice(0,2).toUpperCase();
+// Mapping of crane types to their initials
+const typeInitials = {
+    'tower crane': 'TC',
+    'passenger hoist': 'PH',
+    'gantry crane': 'GC'
+};
+
+// Get initials based on type, or default to first 2 letters of name if type is unknown
+const initials = typeInitials[it.type?.toLowerCase()] || (it.name || 'C').slice(0, 2).toUpperCase();
+
+const thumb = document.createElement('div'); 
+thumb.className = 'thumb'; 
+thumb.style.background = color; 
+thumb.textContent = initials;
     const meta = document.createElement('div'); meta.className='meta';
 const op = state.operators.find(o => o.craneName === it.name);
 
 const opLive = op ? `${escapeHtml(op.name)} (${escapeHtml(op.employeeId)})` : 'No Operator';
-    meta.innerHTML = `<div class="title">${escapeHtml(it.name)}</div><div class="sub">${escapeHtml(it.site||'')}</div><div class="bottom"> <span>${opLive}</span><span><span class="badge" style="background:${color}">${escapeHtml(it.status||'')}</span></span></div>`;
+    meta.innerHTML = `<div class="title">${escapeHtml(it.assetCode)}</div><div class="sub">${escapeHtml(it.site||'')}</div><div class="bottom"> <span>${opLive}</span><span><span class="badge" style="background:${color}">${escapeHtml(it.status||'')}</span></span></div>`;
     card.appendChild(thumb); card.appendChild(meta); listEl.appendChild(card);
   });
   renderPager(total,'left','page');
@@ -1207,13 +1457,14 @@ let detailHideTimer = null;
 function openDetails(id, scroll = true) {
   const item = state.items.find(x=>x.id===id); if(!item) return;
   state.selectedId = id;
-  document.getElementById('detailName').textContent = item.name;
+  document.getElementById('detailName').textContent = item.assetCode;
   document.getElementById('detailType').textContent = item.type;
+document.getElementById('d_name').textContent = item.name;
   document.getElementById('d_status').textContent = item.status || '-';
   document.getElementById('d_coords').textContent = (item.lat?item.lat:'-') +', '+ (item.lng?item.lng:'-');
   document.getElementById('d_model').textContent = item.model || '-';
   document.getElementById('d_serial').textContent = item.serial || '-';
-  document.getElementById('d_asset').textContent = item.asset || '-';
+  document.getElementById('d_asset').textContent = item.assetCode || '-';
   document.getElementById('d_spec').textContent = `${item.height||'-'} / ${item.jib||'-'}`;
   const panel = document.getElementById('details'); panel.style.display = 'flex';
   if(detailHideTimer) clearTimeout(detailHideTimer);
@@ -1222,141 +1473,241 @@ function openDetails(id, scroll = true) {
 }
 document.getElementById('hideDetails').addEventListener('click', ()=>{ document.getElementById('details').style.display='none'; if(detailHideTimer) clearTimeout(detailHideTimer); });
 
-function openMapPopup(item){ document.getElementById('p_name').textContent = item.name; document.getElementById('p_body').innerHTML = `\n    <div class="muted">Type:</div><div>${item.type}</div>\n    <div class="muted" style="margin-top:8px">Site:</div><div>${escapeHtml(item.site||'-')}</div>\n    <div class="muted" style="margin-top:8px">Model:</div><div>${escapeHtml(item.model||'-')}</div>\n    <div class="muted" style="margin-top:8px">Coords:</div><div>${item.lat||'-'}, ${item.lng||'-'}</div>\n  `; document.getElementById('mapPopup').style.display='block'; }
+function openMapPopup(item){ document.getElementById('p_name').textContent = item.assetCode; document.getElementById('p_body').innerHTML = `\n    <div class="muted">Type:</div><div>${item.type}</div>\n    <div class="muted" style="margin-top:8px">Site:</div><div>${escapeHtml(item.site||'-')}</div>\n    <div class="muted" style="margin-top:8px">Model:</div><div>${escapeHtml(item.model||'-')}</div>\n    <div class="muted" style="margin-top:8px">Coords:</div><div>${item.lat||'-'}, ${item.lng||'-'}</div>\n  `; document.getElementById('mapPopup').style.display='block'; }
 function hideMapPopup(){ document.getElementById('mapPopup').style.display='none'; }
 
 /* ======================
    Management & Operators rendering + actions
    ====================== */
+/* ======================
+   Management Table Rendering
+   ====================== */
 function renderMgmtTable(){
-  const tbody = document.getElementById('mgmtTbody'); tbody.innerHTML='';
+  const tbody = document.getElementById('mgmtTbody'); 
+  tbody.innerHTML='';
+  
   const q = document.getElementById('mgmtSearch').value.trim().toLowerCase();
   const typeFilter = document.getElementById('mgmtFilterType').value;
   const statusFilter = document.getElementById('mgmtFilterStatus').value;
-  const arr = state.items.filter(i=>{ if(typeFilter && i.type !== typeFilter) return false; if(statusFilter && i.status !== statusFilter) return false;
-const foundationFilter = document.getElementById('mgmtFilterFoundation').value;
-if (foundationFilter && i.foundation !== foundationFilter) return false;
+  const foundationFilter = document.getElementById('mgmtFilterFoundation').value;
 
- if(!q) return true; return `${i.type} ${i.name} ${i.site} ${i.model} ${i.serial}`.toLowerCase().includes(q); });
-  const size = parseInt(document.getElementById('rowsPerPageMgmt').value || PAGE_SIZE_DEFAULT);
-  const total = arr.length; const pages = Math.max(1, Math.ceil(total/size)); if(state.mgmtPage>pages) state.mgmtPage = pages;
-  const start = (state.mgmtPage-1)*size; const pageItems = arr.slice(start, start+size);
+  const arr = state.items.filter(i=>{ 
+      if(typeFilter && i.type !== typeFilter) return false; 
+      if(statusFilter && i.status !== statusFilter) return false;
+      if(foundationFilter && i.foundation !== foundationFilter) return false;
+      if(!q) return true; 
+      return `${i.assetCode||''} ${i.type||''} ${i.name||''} ${i.site||''} ${i.model||''} ${i.serial||''}`.toLowerCase().includes(q); 
+  });
+
+  const size = parseInt(document.getElementById('rowsPerPageMgmt').value || 10);
+  const total = arr.length; 
+  const pages = Math.max(1, Math.ceil(total/size)); 
+  if(state.mgmtPage > pages) state.mgmtPage = pages;
+  
+  const start = (state.mgmtPage-1)*size; 
+  const pageItems = arr.slice(start, start+size);
+  
   pageItems.forEach(it=>{
     const tr = document.createElement('tr');
-const op = state.operators.find(o => o.craneName === it.name);
+    
+    // FIXED: Right-click listener using 'it'
+    tr.oncontextmenu = (e) => {
+        e.preventDefault(); 
+        openLogs('crane_logs', 'assetCode', it.assetCode, `Logs for ${it.assetCode} (${it.name})`, 'crane');
+    };
 
-const opDetails = op ? `${escapeHtml(op.name)} (${escapeHtml(op.employeeId)})` : '—';
+    const op = state.operators.find(o => o.craneName === it.name);
+    const opDetails = op ? `${escapeHtml(op.name)} (${escapeHtml(op.employeeId)})` : '—';
 
-    tr.innerHTML = `<td>${it.type}</td><td>${escapeHtml(it.name)}</td><td>${escapeHtml(it.asset || "")}</td><td>${opDetails}</td><td>${escapeHtml(it.site)}</td><td>${escapeHtml(it.brand || "")}</td><td>${escapeHtml(it.model)}</td><td>${escapeHtml(it.serial)}</td><td>${escapeHtml(it.foundation || "")}</td><td>${it.lat||''}</td><td>${it.lng||''}</td><td>${it.height||''}</td><td>${it.jib||''}</td><td><span class="badge" style="background:${statusColor(it.status)}">${it.status||''}</span></td>\n    <td><button class="btn ghost" onclick="openMgmtModal('${it.id}')">Edit</button> <button class="btn ghost" onclick="deleteMgmt('${it.id}')">Delete</button></td>`;
+    tr.innerHTML = `
+        <td>${it.type}</td>
+        <td>${escapeHtml(it.name)}</td>
+        <td>${escapeHtml(it.assetCode || it.asset || "")}</td>
+        <td>${opDetails}</td>
+        <td>${escapeHtml(it.site)}</td>
+        <td>${escapeHtml(it.brand || "")}</td>
+        <td>${escapeHtml(it.model)}</td>
+        <td>${escapeHtml(it.serial)}</td>
+        <td>${escapeHtml(it.foundation || "")}</td>
+        <td>${it.lat||''}</td>
+        <td>${it.lng||''}</td>
+        <td>${it.height||''}</td>
+        <td>${it.jib||''}</td>
+        <td><span class="badge" style="background:${statusColor(it.status)}">${it.status||''}</span></td>
+        <td>
+            <button class="btn ghost" onclick="openMgmtModal('${it.id}')">Edit</button> 
+            <button class="btn ghost" onclick="deleteMgmt('${it.id}')">Delete</button>
+        </td>`;
     tbody.appendChild(tr);
   });
+  
   renderPager(total,'mgmt','mgmtPage');
 }
 
-function deleteMgmt(id) {
-    if (!confirm('Delete crane?')) return;
-    db.collection("cranes").doc(id).delete().catch(err => {
-        alert("Error deleting: " + err.message);
-    });
-    
-}
 
-/* ======================
-   Modal logic for Management
-   ====================== */
 function openMgmtModal(editId=null){
-  const modal = document.getElementById('modal'); const title = document.getElementById('modalTitle'); const body = document.getElementById('modalBody');
-  let isEdit = !!editId; title.textContent = isEdit ? 'Edit Crane' : 'Add Crane';
+  const modal = document.getElementById('modal'); 
+  const title = document.getElementById('modalTitle'); 
+  const body = document.getElementById('modalBody');
+  
+  let isEdit = !!editId; 
+  title.textContent = isEdit ? 'Edit Crane' : 'Add Crane';
+  
   let it = { name:'', type:'tower crane', site:'', model:'', serial:'', asset:'', lat:'', lng:'', height:'', jib:'', status:'Working', notes:'' };
   if(isEdit){ const found = state.items.find(x=>x.id===editId); if(found) it = {...found}; }
+  
   body.innerHTML = `
-    <div class="form-row"><input id="fm_name" placeholder="Crane Name" value="${escapeHtml(it.name)}"><select id="fm_type"><option value="tower crane">Tower Crane</option><option value="passenger hoist">Passenger Hoist</option><option value="gantry crane">Gantry Crane</option></select></div>
-<div class="form-row"><input id="fm_serial" placeholder="Serial No" value="${escapeHtml(it.serial)}"><input id="fm_asset" placeholder="Asset Code" value="${escapeHtml(it.asset)}"></div>
-    <div class="form-row"><input id="fm_site" placeholder="Site / Address" value="${escapeHtml(it.site)}"><input id="fm_model" placeholder="Model" value="${escapeHtml(it.model)}"></div>
-<div class="form-row">
-    <input id="fm_brand" placeholder="Brand" value="${escapeHtml(it.brand || "")}">
-    <select id="fm_foundation">
-        <option value="">-- Foundation Type --</option>
-        <option>Travelling System</option>
-        <option>Fixing Angle System</option>
-    </select>
-</div>
-
-    
-    <div class="form-row"><input id="fm_lat" placeholder="Latitude" value="${it.lat||''}"><input id="fm_lng" placeholder="Longitude" value="${it.lng||''}"></div>
-    <div class="form-row"><input id="fm_height" placeholder="Height / Capacity" value="${escapeHtml(it.height)}"><input id="fm_jib" placeholder="Jib Length (meters)" value="${it.jib||''}"></div>
-    <div class="form-row"><select id="fm_status"><option>Working</option><option>Idle</option><option>Maintenance</option></select><input id="fm_notes" placeholder="Remarks / Notes" value="${escapeHtml(it.notes)}"></div>
-    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" id="fm_save">${isEdit? 'Save': 'Add'}</button></div>
+    <div class="form-row">
+        <input id="fm_name" placeholder="Crane Name" value="${escapeHtml(it.name)}">
+        <select id="fm_type">
+            <option value="tower crane">Tower Crane</option>
+            <option value="passenger hoist">Passenger Hoist</option>
+            <option value="gantry crane">Gantry Crane</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <input id="fm_serial" placeholder="Serial No" value="${escapeHtml(it.serial)}">
+        <input id="fm_asset" placeholder="Asset Code" value="${escapeHtml(it.asset || it.assetCode)}">
+    </div>
+    <div class="form-row">
+        <input id="fm_site" placeholder="Site / Address" value="${escapeHtml(it.site)}">
+        <input id="fm_model" placeholder="Model" value="${escapeHtml(it.model)}">
+    </div>
+    <div class="form-row">
+        <input id="fm_brand" placeholder="Brand" value="${escapeHtml(it.brand || "")}">
+        <select id="fm_foundation">
+            <option value="">-- Foundation Type --</option>
+            <option>Travelling Under Carriage</option>
+            <option>Fixing Angle System</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <input id="fm_lat" placeholder="Latitude" value="${it.lat||''}">
+        <input id="fm_lng" placeholder="Longitude" value="${it.lng||''}">
+    </div>
+    <div class="form-row">
+        <input id="fm_height" placeholder="Height / Capacity" value="${escapeHtml(it.height)}">
+        <input id="fm_jib" placeholder="Jib Length (meters)" value="${it.jib||''}">
+    </div>
+    <div class="form-row">
+        <select id="fm_status">
+            <option>Working</option>
+            <option>Idle</option>
+            <option>Maintenance</option>
+        </select>
+        <input id="fm_notes" placeholder="Remarks / Notes" value="${escapeHtml(it.notes)}">
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px">
+        <button class="btn ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn primary" id="fm_save">${isEdit? 'Save': 'Add'}</button>
+    </div>
   `;
-  // set selected values after DOM injection
-  setTimeout(()=>{ document.getElementById('fm_type').value = it.type || 'tower crane'; document.getElementById('fm_status').value = it.status || 'Working'; document.getElementById('modal').style.display='flex'; 
 
-document.getElementById('fm_save').onclick = async () => {
-    const btn = document.getElementById('fm_save');
-    btn.disabled = true; // Prevent double clicks
-    btn.textContent = "Saving...";
+  setTimeout(()=>{ 
+      const statusSelect = document.getElementById('fm_status');
+      const siteInput = document.getElementById('fm_site');
+      const latInput = document.getElementById('fm_lat');
+      const lngInput = document.getElementById('fm_lng');
 
-    const payload = {
-        name: document.getElementById('fm_name').value.trim(),
-        type: document.getElementById('fm_type').value,
-        site: document.getElementById('fm_site').value.trim(),
-        model: document.getElementById('fm_model').value.trim(),
-        brand: document.getElementById('fm_brand').value.trim(),
-        foundation: document.getElementById('fm_foundation').value,
-        serial: document.getElementById('fm_serial').value.trim(),
-        asset: document.getElementById('fm_asset').value.trim(),
-        lat: parseFloat(document.getElementById('fm_lat').value) || 0,
-        lng: parseFloat(document.getElementById('fm_lng').value) || 0,
-        height: document.getElementById('fm_height').value.trim(),
-        jib: parseFloat(document.getElementById('fm_jib').value) || 0,
-        status: document.getElementById('fm_status').value,
-        notes: document.getElementById('fm_notes').value.trim(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
+      // Set initial values
+      document.getElementById('fm_type').value = it.type || 'tower crane'; 
+      statusSelect.value = it.status || 'Working';
+      document.getElementById('fm_foundation').value = it.foundation || ''; 
 
+      // --- LOGIC 1: AUTO-FILL ON STATUS CHANGE ---
+      statusSelect.addEventListener('change', function() {
+          if (this.value === "Idle") {
+              siteInput.value = "Al Ajban, TC Yard";
+              latInput.value = "24.604984";
+              lngInput.value = "54.996687";
+          } else if (this.value === "Working") {
+              // Reset to 0 and clear site to force user entry
+              latInput.value = "0";
+              lngInput.value = "0";
+              siteInput.value = ""; 
+          }
+      });
 
-try {
-        if (isEdit) {
-            // Update existing document
-            await db.collection("cranes").doc(editId).update(payload);
-        } else {
-            // Add new document
-            payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-            await db.collection("cranes").add(payload);
-        }
-        closeModal();
-        // refreshView() is called automatically by onSnapshot!
-    } catch (error) {
-        console.error("Error saving crane:", error);
-        alert("Error saving data: " + error.message);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = isEdit ? 'Save' : 'Add';
-    }
+      document.getElementById('modal').style.display='flex'; 
 
+      document.getElementById('fm_save').onclick = async () => {
+          const btn = document.getElementById('fm_save');
+          
+          // --- LOGIC 2: MANDATORY SITE CHECK ---
+          const currentStatus = statusSelect.value;
+          const currentSite = siteInput.value.trim();
 
-// =========================
-// AUTO-UNASSIGN OPERATORS IF CRANE STATUS BECOMES IDLE OR MAINTENANCE
-// =========================
-if (payload.status === "Idle" || payload.status === "Maintenance") {
-        // Find operators assigned to this crane and update them in Firestore
-        const assignedOps = state.operators.filter(op => op.craneName === payload.name);
-        assignedOps.forEach(op => {
-            db.collection("operators").doc(op.id).update({
-                craneName: "",
-                craneType: "",
-                status: "Operator IDLE",
-                leaveSince: new Date().toISOString().split("T")[0],
-                leaveTill: ""
-            });
-        });
-    }
+          if (currentStatus === "Working" && !currentSite) {
+              alert("Site Name is MANDATORY when status is Working.");
+              return; // Stop execution
+          }
 
+          btn.disabled = true; 
+          btn.textContent = "Saving...";
 
+          const payload = {
+              name: document.getElementById('fm_name').value.trim(),
+              type: document.getElementById('fm_type').value,
+              site: currentSite,
+              model: document.getElementById('fm_model').value.trim(),
+              brand: document.getElementById('fm_brand').value.trim(),
+              foundation: document.getElementById('fm_foundation').value,
+              serial: document.getElementById('fm_serial').value.trim(),
+              asset: document.getElementById('fm_asset').value.trim(),
+              lat: parseFloat(latInput.value) || 0,
+              lng: parseFloat(lngInput.value) || 0,
+              height: document.getElementById('fm_height').value.trim(),
+              jib: parseFloat(document.getElementById('fm_jib').value) || 0,
+              status: currentStatus,
+              notes: document.getElementById('fm_notes').value.trim(),
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
 
+          try {
+              if (isEdit) {
+                  await db.collection("cranes").doc(editId).update(payload);
+              } else {
+                  payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                  await db.collection("cranes").add(payload);
+              }
+              // Calculate current operator (if any)
+    const currentOp = state.operators.find(o => o.craneName === payload.name);
+    
+    await db.collection("crane_logs").add({
+        assetCode: payload.asset, // Key for filtering
+        craneName: payload.name,
+        status: payload.status,
+        site: payload.site,
+        operatorName: currentOp ? `${currentOp.name} (${currentOp.employeeId})` : 'Unassigned',
+        user: "Admin", // Or dynamic user
+        notes: payload.notes || "Status/Info Update",
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    // --------------------------
+              // Auto-Unassign Logic
+              if (payload.status === "Idle" || payload.status === "Maintenance") {
+                  const assignedOps = state.operators.filter(op => op.craneName === payload.name);
+                  assignedOps.forEach(op => {
+                      db.collection("operators").doc(op.id).update({
+                          craneName: "",
+                          craneType: "",
+                          status: "Operator IDLE",
+                          leaveSince: new Date().toISOString().split("T")[0],
+                          leaveTill: ""
+                      });
+                  });
+              }
 
-
- refreshView(); }; }, 50);
+              closeModal();
+          } catch (error) {
+              console.error("Error saving crane:", error);
+              alert("Error saving data: " + error.message);
+          } finally {
+              btn.disabled = false;
+              btn.textContent = isEdit ? 'Save' : 'Add';
+          }
+      }; 
+  }, 50);
 }
 
 /* ======================
@@ -1636,13 +1987,37 @@ btn.textContent = "Saving...";
                 status: "Working",
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-        }
 
+await db.collection("operator_crane_logs").add({
+            type: "ASSIGN",
+            operatorId: payload.employeeId,
+            operatorName: payload.name,
+            craneName: newCraneName, // Explicitly capture crane name
+            Shift: payload.shift,    // Explicitly capture Shift
+            details: `Assigned to ${newCraneName} (${payload.shift})`,
+            user: "Admin",
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        }
+if (isEdit) {
+         // You can force a generic log for updates
+         await db.collection("operator_crane_logs").add({
+            type: "UPDATE",
+            operatorId: payload.employeeId,
+            operatorName: payload.name,
+            craneName: payload.craneName || "N/A",
+            Shift: payload.shift,
+            details: `Status updated to ${payload.status}. Remarks: ${payload.remarks}`,
+            user: "Admin",
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
         // AUDIT LOG
         await db.collection("operator_crane_logs").add({
             type: "ASSIGN",
             operatorId: payload.employeeId,
             operatorName: payload.name,
+	Shift: payload.shift,
             craneName: newCraneName,
             status: "Working",
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
@@ -1677,6 +2052,7 @@ btn.textContent = "Saving...";
             operatorId: payload.employeeId,
             operatorName: payload.name,
             craneName: previousCraneName,
+Shift:payload.shift,
             status: "Idle",
             timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -1720,10 +2096,17 @@ function closeAllSubmenus() {
     });
 }
 /* Operators rendering and actions */
-function renderOperators(){ const tbody = document.getElementById('opTbody'); tbody.innerHTML=''; const q = document.getElementById('opSearch').value.trim().toLowerCase(); const typeFilter = document.getElementById('opFilterType').value; const arr = state.operators.filter(o=>{ if(typeFilter && o.craneType !== typeFilter) return false;const statusFilter = document.getElementById('opFilterStatus').value;
+function renderOperators(){ const tbody = document.getElementById('opTbody'); tbody.innerHTML=''; const q = document.getElementById('opSearch').value.trim().toLowerCase();
+const typeFilter = document.getElementById('opFilterType').value; const arr = state.operators.filter(o=>{ if(typeFilter && o.craneType !== typeFilter) return false;const statusFilter = document.getElementById('opFilterStatus').value;
 if (statusFilter && o.status !== statusFilter) return false;
- if(!q) return true; return `${o.employeeId} ${o.name} ${o.craneName} ${o.contact}`.toLowerCase().includes(q); }); const size = parseInt(document.getElementById('rowsPerPageOp').value || PAGE_SIZE_DEFAULT); const total = arr.length; const pages = Math.max(1, Math.ceil(total/size)); if(state.opPage>pages) state.opPage = pages; const start = (state.opPage-1)*size; const pageItems = arr.slice(start, start+size); pageItems.forEach(o=>{ const tr = document.createElement('tr');
-
+ if(!q) return true; return `${o.employeeId} ${o.name} ${o.craneName} ${o.contact}`.toLowerCase().includes(q); }); const size = parseInt(document.getElementById('rowsPerPageOp').value || PAGE_SIZE_DEFAULT); const total = arr.length; const pages = Math.max(1, Math.ceil(total/size)); if(state.opPage>pages) state.opPage = pages; const start = (state.opPage-1)*size; const pageItems = arr.slice(start, start+size); pageItems.forEach(o=>{ 
+const tr = document.createElement('tr');
+// ---Right-Click Listener ---
+    tr.oncontextmenu = (e) => {
+        e.preventDefault();
+        openLogs('operator_crane_logs', 'operatorId', o.employeeId, `Logs for ${o.name}`, 'operator');
+    };
+    // -------------------------------------
  tr.innerHTML = `<td>${escapeHtml(o.employeeId||'')}</td><td>${escapeHtml(o.name||'')}</td><td>${escapeHtml(o.designation||'')}</td><td>${escapeHtml(o.shift||'')}</td><td>${escapeHtml(o.craneType||'')}</td><td>${escapeHtml(findCraneName(o.craneName)||o.craneName||'')}</td><td>${escapeHtml(o.contact||'')}</td><td>${escapeHtml(o.joiningDate||'')}</td><td>${escapeHtml(o.leaveSince||'')}</td><td>${escapeHtml(o.leaveTill||'')}</td><td>${escapeHtml(o.status||'')}</td><td>${escapeHtml(o.remarks||'')}</td><td><button class="btn ghost" onclick="openOpModal('${o.id}')">Edit</button> <button class="btn ghost" onclick="deleteOperator('${o.id}')">Delete</button></td>`; tbody.appendChild(tr); }); renderPager(total,'op','opPage'); }
 function deleteOperator(id) {
     if (!confirm('Delete operator?')) return;
@@ -1739,9 +2122,21 @@ function findCraneName(id){ const c = state.items.find(x=>x.id===id); return c ?
 /* ======================
    UI wiring
    ====================== */
-document.getElementById('navLive').addEventListener('click', ()=>{ clearActiveMenus();state.view='live'; updateView(); setActiveNav('navLive'); });
-document.getElementById('navMgmt').addEventListener('click', ()=>{clearActiveMenus(); state.view='mgmt'; updateView(); setActiveNav('navMgmt'); });
-document.getElementById('navOps').addEventListener('click', ()=>{clearActiveMenus(); state.view='operators'; updateView(); setActiveNav('navOps'); });
+document.getElementById('navLive').addEventListener('click', ()=>{ closeAllPanels();clearActiveMenus();state.view='live'; updateView(); setActiveNav('navLive'); });
+// Place this near your other navigation listeners (approx line 1860)
+document.getElementById('navDashboard').addEventListener('click', () => {
+    clearActiveMenus(); 
+    closeAllPanels(); 
+document.getElementById('dashboardWrap').style.display = 'block';
+    document.getElementById('navDashboard').classList.add('active');
+    
+    // Hide map and list while dashboard is open
+    document.getElementById('mapArea').style.display = 'none';
+    document.getElementById('leftPanel').style.display = 'none';
+    renderDashboard();
+});
+document.getElementById('navMgmt').addEventListener('click', ()=>{closeAllPanels();clearActiveMenus(); state.view='mgmt'; updateView(); setActiveNav('navMgmt'); });
+document.getElementById('navOps').addEventListener('click', ()=>{closeAllPanels();clearActiveMenus(); state.view='operators'; updateView(); setActiveNav('navOps'); });
 document.getElementById("navMaintenance").addEventListener("click", function () {
     alert("Please contact Administrator to get access to Maintenance.");
 });
@@ -1877,44 +2272,62 @@ document.getElementById("expPdf").addEventListener("click", async function () {
     html2pdf().set(opt).from(element).save();
 });
 
-document.getElementById("mgmtImport").addEventListener("change", function (e) {
+// Locate your existing mgmtImport listener and update it as follows:
+document.getElementById('mgmtImport').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
-    reader.onload = function (event) {
-        const data = new Uint8Array(event.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet);
+    reader.onload = async function(evt) {
+        const data = evt.target.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-        rows.forEach(r => {
-            state.items.push({
-                id: uid(),
-                type: r.Type || "tower crane",
-                name: r.Name || "",
-		asset: r.asset ||"",
-                site: r.Site || "",
-                brand: r.Brand || "",
-                model: r.Model || "",
-                serial: r.Serial || "",
-                foundation: r.Foundation || "",
-                lat: parseFloat(r.Lat) || 0,
-                lng: parseFloat(r.Lng) || 0,
-                height: r.Height || "",
-                jib: r.Jib || "",
-                status: r.Status || "Working",
-                notes: ""
-            });
-        });
+        // Show a loading state if you have one, or a simple console log
+        console.log("Starting bulk import to Firebase...");
 
-        
-        renderMgmtTable();
-        alert("Import completed!");
+        const batch = db.batch(); // Use a batch for better performance
+
+        for (const row of rows) {
+            // Ensure we have an Asset Code to use as the Document Name
+            const assetCode = row['Asset Code'] || row['assetCode'] || uid();
+            
+            // Prepare the object mapping based on your table headers
+            const craneData = {
+                type: row['Type'] || 'tower crane',
+                name: row['Crane Site Name'] || 'Unknown Crane',
+                assetCode: assetCode,
+                operatorDetails: row['Operator Details'] || '',
+                site: row['Site'] || '',
+                brand: row['Brand'] || '',
+                model: row['Model'] || '',
+                serial: row['Serial'] || '',
+                foundation: row['Foundation'] || '',
+                lat: parseFloat(row['Lat']) || 0,
+                lng: parseFloat(row['Lng']) || 0,
+                height: row['Height'] || '',
+                jib: row['Jib'] || '',
+                status: row['Status'] || 'Idle',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Set the document in Firebase using Assetcode as the ID
+            const docRef = db.collection("cranes").doc(assetCode);
+            batch.set(docRef, craneData, { merge: true });
+        }
+
+        try {
+            await batch.commit();
+            alert(`Successfully imported ${rows.length} cranes to Firebase!`);
+            // The real-time listener (initRealtimeListeners) will automatically update the table
+        } catch (error) {
+            console.error("Error saving bulk import:", error);
+            alert("Failed to save data to Firebase.");
+        }
     };
-    reader.readAsArrayBuffer(file);
+    reader.readAsBinaryString(file);
 });
-
 /*-----Oporator – EXPORT CSV----->*/
 
 
@@ -2035,6 +2448,94 @@ document.getElementById("rep_op_status").addEventListener("click", function () {
     state.view = "op_overstay";
     openOverstayView();
 });
+// 1. Logic to handle File Selection and enable the Confirm button
+document.getElementById("otpImport").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Enable the confirm button and change its style to show it's ready
+    const btn = document.getElementById("otpConfirmImport");
+    btn.disabled = false;
+    btn.classList.remove("ghost");
+    btn.classList.add("primary");
+    
+    console.log("File selected for Operator Third Party Import:", file.name);
+});
+
+
+// Logic for the Operator Third Party Confirm Import Button
+document.getElementById("otpConfirmImport").addEventListener("click", async () => {
+    const fileInput = document.getElementById("otpImport");
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const btn = document.getElementById("otpConfirmImport");
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Processing...";
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+        try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, { type: "array", cellDates: true });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet);
+
+            let count = 0;
+            for (const row of rows) {
+                // Skip if mandatory fields are missing
+                if (!row["Employee ID"] || !row["Certificate No"]) continue;
+
+                // --- SAFE DATE PARSING ---
+                const parseDate = (val) => {
+                    if (!val) return null;
+                    const d = new Date(val);
+                    return isNaN(d.getTime()) ? null : d;
+                };
+
+                const inspDateObj = parseDate(row["Inspection Date"]);
+                const nextDueObj = parseDate(row["Next Due Date"]);
+
+                // --- STATUS CALCULATION ---
+                let status = "Valid";
+                if (nextDueObj) {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const diff = Math.ceil((nextDueObj - today) / (1000 * 60 * 60 * 24));
+                    if (diff <= 0) status = "Overdue";
+                    else if (diff <= 30) status = "Near Expiry";
+                }
+
+                // --- DATABASE SYNC ---
+                await db.collection("operator_third_party_certs").add({
+                    employeeId: String(row["Employee ID"]),
+                    employeeName: row["Employee Name"] || "",
+                    certificateNo: String(row["Certificate No"]),
+                    // Only call toISOString if the date object exists
+                    inspectionDate: inspDateObj ? inspDateObj.toISOString().split('T')[0] : "",
+                    nextDueDate: nextDueObj ? nextDueObj.toISOString().split('T')[0] : "",
+                    owner: row["Owner"] || "",
+                    status: status,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                count++;
+            }
+
+            alert(`Successfully imported ${count} operator certificates!`);
+        } catch (err) {
+            console.error("Import error details:", err);
+            alert("Error during import. Check the console for details.");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+            fileInput.value = ""; 
+        }
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+
 function openOverstayView() {
     document.getElementById("opOverstayWrap").style.display = "block";
     document.getElementById("thirdPartyWrap").style.display = "none";
@@ -2249,7 +2750,7 @@ function saveTpData(item) {
 
 // 2. Navigation: Open/Close Panel
 document.getElementById("rep_tc_thirdparty").addEventListener("click", () => {
-    // Close other panels
+    closeAllPanels();
     document.querySelectorAll('.panel-wrap').forEach(p => p.style.display = 'none');
     
     // Open TP Panel
@@ -2360,8 +2861,6 @@ function tpRenderTable() {
 
     // Filter Data
     let filtered = tpState.items.filter(item => {
-        // --- FIX STARTS HERE: SAFE SEARCH LOGIC ---
-        // We use (val || "") to turn undefined/null into empty strings prevents NaN errors
         const textToSearch = (
             (item.crane || "") + " " + 
             (item.certNo || "") + " " + 
@@ -2370,16 +2869,13 @@ function tpRenderTable() {
         ).toLowerCase();
 
         const matchSearch = textToSearch.includes(search);
-        // --- FIX ENDS HERE ---
-
         const matchStatus = statusFilter === "" || item.status === statusFilter;
-        // Basic type check
         const matchType = typeFilter === "" || (item.type && item.type === typeFilter) || true; 
         
         return matchSearch && matchStatus && matchType;
     });
 
-    // Pagination Logic
+    // Pagination
     tpState.rowsPerPage = parseInt(document.getElementById("rowsPerPageTp").value);
     const total = filtered.length;
     const totalPages = Math.ceil(total / tpState.rowsPerPage);
@@ -2397,6 +2893,10 @@ function tpRenderTable() {
         if(item.status === "Overdue") badgeColor = "#dc2626"; // Red
         if(item.status === "Near Expiry") badgeColor = "#f59e0b"; // Orange
 
+        const downloadBtn = item.fileUrl 
+        ? `<a href="${item.fileUrl}" target="_blank" class="btn small primary" style="text-decoration:none; padding:4px 8px; color:white;">Download</a>` 
+        : `<span style="color:#999; font-size:12px;">No File</span>`;
+
         tr.innerHTML = `
             <td style="font-weight:bold;">${item.crane || '-'}</td>
             <td>${item.certNo || '-'}</td>
@@ -2406,16 +2906,16 @@ function tpRenderTable() {
             <td>${item.nextDue || '-'}</td>
             <td><span class="badge" style="background:${badgeColor}; color:white;">${item.status}</span></td>
             <td>
-		<button class="small" onclick="editTp('${item.id}')">Edit</button>
+                <button class="small" onclick="editTp('${item.id}')">Edit</button>
                 <button class="small" style="color:red" onclick="deleteTp('${item.id}')">Delete</button>
             </td>
+            <td>${downloadBtn}</td>
         `;
 
-        // Right Click History Feature
+        // FIXED: Use 'item' (the loop variable), not 'it'
         tr.oncontextmenu = (e) => {
             e.preventDefault(); 
-alert("Viewing logs for Employee ID: " + it.id);
-            showHistory(item.crane);
+            openLogs('third_party_logs', 'relatedId', item.id, `Cert History: ${item.crane}`, 'cert');
         };
 
         tbody.appendChild(tr);
@@ -2495,6 +2995,10 @@ function editTp(id) {
 
     // This line makes it appear only when clicked
     document.getElementById("tpEditModal").style.display = "flex";
+document.getElementById("editTpOldUrl").value = item.fileUrl || ""; 
+    document.getElementById("editTpStartFile").value = ""; // Clear file input
+    const lbl = document.getElementById("tpCurrentFileLabel");
+    lbl.textContent = item.fileUrl ? "File already attached." : "No file attached.";
 }
 
 // Function to close the modal
@@ -2503,11 +3007,30 @@ function closeTpModal() {
 }
 
 // Function to save all changes to Firebase at once
-function updateTpFirebase() {
+async function updateTpFirebase() {
+    const btn = document.getElementById("btnSaveTp");
+    btn.disabled = true;
+    btn.textContent = "Uploading...";
+
     const id = document.getElementById("editTpId").value;
     const nextDueStr = document.getElementById("editTpNextDue").value;
-    
-    // Recalculate Status
+    const fileInput = document.getElementById("editTpStartFile");
+    const oldUrl = document.getElementById("editTpOldUrl").value;
+
+    // 1. Handle File Upload if selected
+    let newFileUrl = oldUrl; // Default to existing
+    if (fileInput.files.length > 0) {
+        try {
+            newFileUrl = await uploadFileAndGetUrl(fileInput.files[0], "tc_certs", oldUrl);
+        } catch (err) {
+            console.error(err);
+            alert("File upload failed!");
+            btn.disabled = false; btn.textContent = "Save Changes";
+            return;
+        }
+    }
+
+    // 2. Calculate Status
     const now = new Date();
     const nextDueDate = new Date(nextDueStr);
     const diffDays = Math.ceil((nextDueDate - now) / (1000 * 60 * 60 * 24));
@@ -2522,10 +3045,18 @@ function updateTpFirebase() {
         nextDue: nextDueStr,
         owner: document.getElementById("editTpOwner").value,
         status: newStatus,
+        fileUrl: newFileUrl || "", // Save the link
         lastUpdated: new Date().toLocaleString()
     };
-
-    // Update Firebase document
+await db.collection("third_party_logs").add({
+    relatedId: id, // Link to the cert
+    certNo: document.getElementById("editTpCert").value,
+    status: newStatus,
+    nextDue: nextDueStr,
+    user: "Admin",
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+});
+    // 3. Update Firestore
     db.collection("third_party_certs").doc(id).update(updatedData)
         .then(() => {
             alert("Updated Successfully!");
@@ -2534,9 +3065,12 @@ function updateTpFirebase() {
         .catch(err => {
             console.error("Update error:", err);
             alert("Error updating record.");
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.textContent = "Save Changes";
         });
 }
-
 
 // 9. Export Functions
 document.getElementById("tpExportXlsx").addEventListener("click", () => {
@@ -2559,6 +3093,21 @@ document.getElementById("tpExportPdf").addEventListener("click", () => {
 });
 
 
+document.getElementById("rep_op_thirdparty").onclick = () => {
+    clearActiveMenus(); 
+    if (typeof closeAllPanels === "function") closeAllPanels(); 
+    
+    // Display the panel
+    document.getElementById("opThirdPartyWrap").style.display = "block";
+    
+    // Add active state to the Reports button
+    document.getElementById("navReports").classList.add("active");
+
+    // Ensure table renders immediately when opened
+    renderOtpTable(); 
+};
+
+
 function renderOtpTable() {
   const tbody = document.getElementById("otpTbody");
   tbody.innerHTML = "";
@@ -2577,7 +3126,21 @@ function renderOtpTable() {
   const pageItems = filtered.slice(start, start + size);
 
   pageItems.forEach(i => {
+    // 1. Create the row element first
     const tr = document.createElement("tr");
+
+    // 2. Define the Right-Click Listener (MUST be inside the loop)
+    tr.oncontextmenu = (e) => {
+        e.preventDefault();
+        // Note: We use 'i.id' here because 'i' is the variable name in this loop
+        openLogs('third_party_logs', 'relatedId', i.id, `Cert History: ${i.employeeName}`, 'cert');
+    };
+
+    const downloadLink = i.fileUrl 
+        ? `<a href="${i.fileUrl}" target="_blank" class="btn small primary" style="text-decoration:none; padding:4px 8px; color:white;">Download</a>`
+        : `<span style="color:#999; font-size:12px;">No File</span>`;
+
+    // 3. Set inner HTML
     tr.innerHTML = `
       <td>${i.employeeId}</td>
       <td>${escapeHtml(i.employeeName)}</td>
@@ -2589,23 +3152,15 @@ function renderOtpTable() {
       <td>
         <button class="btn ghost" onclick="editOtp('${i.id}')">Edit</button>
         <button class="btn ghost" onclick="deleteOtp('${i.id}')">Delete</button>
-      </td>`;
+      </td>
+      <td>${downloadLink}</td>`;
+    
+    // 4. Append row to table
     tbody.appendChild(tr);
   });
 
   renderPager(filtered.length, "otp", "page");
 }
-document.getElementById("rep_op_thirdparty").onclick = () => {
-    // This now hides the menu but allows it to be re-opened
-    clearActiveMenus(); 
-    
-    // Your existing display logic
-    if (typeof closeAllPanels === "function") closeAllPanels(); 
-    document.getElementById("opThirdPartyWrap").style.display = "block";
-    
-    // Add active state to the Reports button
-    document.getElementById("navReports").classList.add("active");
-};
 
 let otpState = {
   items: [],
@@ -2620,10 +3175,16 @@ db.collection("operator_third_party_certs")
     renderOtpTable();
   });
 function closeAllPanels() {
+    // List all your panel IDs here
     const panels = [
-        'mgmtWrap', 'operatorsWrap', 'thirdPartyWrap', 
-        'opThirdPartyWrap', 'opOverstayWrap', 
-        'alertsWrap', 'alertsConfigWrap' // Ensure these are included
+        'mgmtWrap', 
+        'operatorsWrap', 
+        'dashboardWrap', 
+        'thirdPartyWrap', 
+        'opThirdPartyWrap',
+        'opOverstayWrap',
+        'alertsWrap',
+        'alertsConfigWrap'
     ];
     
     panels.forEach(id => {
@@ -2631,11 +3192,423 @@ function closeAllPanels() {
         if (el) el.style.display = 'none';
     });
 
-    // This loop removes the underline from the previous menu
+    // Reset Map/List visibility (Live Trace)
+    document.getElementById('mapArea').style.display = 'block';
+    document.getElementById('leftPanel').style.display = 'flex';
+    
+    // Remove active class from all nav buttons
     document.querySelectorAll('.topnav button, .dropbtn').forEach(btn => {
         btn.classList.remove('active');
     });
 }
+
+/* --- OPERATOR THIRD PARTY ACTIONS --- */
+
+// 1. Function to open the Edit Modal and fill it with data
+async function editOtp(id) {
+    try {
+        const doc = await db.collection("operator_third_party_certs").doc(id).get();
+        if (!doc.exists) return alert("Record not found.");
+        
+        const data = doc.data();
+        
+        // Populate the modal fields
+        document.getElementById("editOtpId").value = id;
+        document.getElementById("editOtpName").value = data.employeeName || "";
+        document.getElementById("editOtpCert").value = data.certificateNo || "";
+        document.getElementById("editOtpInspDate").value = data.inspectionDate || "";
+        document.getElementById("editOtpNextDue").value = data.nextDueDate || "";
+        document.getElementById("editOtpOwner").value = data.owner || "";
+// File Logic
+        document.getElementById("editOtpOldUrl").value = data.fileUrl || "";
+        document.getElementById("editOtpFile").value = "";
+        document.getElementById("otpFileLabel").textContent = data.fileUrl ? "File Attached" : "No File";
+        // Show the modal
+        document.getElementById("otpEditModal").style.display = "flex";
+    } catch (err) {
+        console.error("Error loading edit data:", err);
+    }
+}
+
+// 2. The function currently causing your error: updateOtpFirebase
+async function updateOtpFirebase() {
+    const btn = document.getElementById("btnSaveOtp");
+    btn.disabled = true; btn.textContent = "Uploading...";
+
+    const id = document.getElementById("editOtpId").value;
+    const fileInput = document.getElementById("editOtpFile");
+    const oldUrl = document.getElementById("editOtpOldUrl").value;
+    const nextDueVal = document.getElementById("editOtpNextDue").value;
+
+    // 1. File Upload
+    let newUrl = oldUrl;
+    if (fileInput.files.length > 0) {
+        try {
+            newUrl = await uploadFileAndGetUrl(fileInput.files[0], "operator_certs", oldUrl);
+        } catch (e) {
+            alert("Upload Error"); 
+            btn.disabled = false; return;
+        }
+    }
+
+    // 2. Status Logic
+    let status = "Valid";
+    if (nextDueVal) {
+        const nextDue = new Date(nextDueVal);
+        const today = new Date(); today.setHours(0,0,0,0);
+        const diff = Math.ceil((nextDue - today) / (1000 * 60 * 60 * 24));
+        if (diff <= 0) status = "Overdue";
+        else if (diff <= 30) status = "Near Expiry";
+    }
+
+    const updatedData = {
+        employeeName: document.getElementById("editOtpName").value,
+        certificateNo: document.getElementById("editOtpCert").value,
+        inspectionDate: document.getElementById("editOtpInspDate").value,
+        nextDueDate: nextDueVal,
+        owner: document.getElementById("editOtpOwner").value,
+        status: status,
+        fileUrl: newUrl || ""
+    };
+await db.collection("third_party_logs").add({
+    relatedId: id,
+    certNo: document.getElementById("editOtpCert").value,
+    status: status, // the calculated status variable
+    nextDue: nextDueVal,
+    user: "Admin",
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+});
+    try {
+        await db.collection("operator_third_party_certs").doc(id).update(updatedData);
+        alert("Update successful!");
+        closeOtpModal();
+    } catch (err) {
+        console.error("Update error:", err);
+        alert("Failed to update record.");
+    } finally {
+        btn.disabled = false; btn.textContent = "Save Changes";
+    }
+}
+
+// 3. Function to close the modal
+function closeOtpModal() {
+    const modal = document.getElementById("otpEditModal");
+    if (modal) modal.style.display = "none";
+}
+
+// 4. Function to delete the record
+async function deleteOtp(id) {
+    if (confirm("Are you sure you want to delete this record?")) {
+        try {
+            await db.collection("operator_third_party_certs").doc(id).delete();
+            alert("Record deleted successfully.");
+        } catch (err) {
+            console.error("Delete error:", err);
+            alert("Error deleting record.");
+        }
+    }
+}
+// --- DARK THEME COLOR PALETTE ---
+const THEME = {
+    green: '#2e7d32', 
+    yellow: '#ed6c02', 
+    red: '#d32f2f', 
+    blue: '#004080', 
+    purple: '#775DD0', 
+    teal: '#0097a7', 
+    text: '#333333', // Dark text for white background
+    grid: '#e5e7eb'  // Light grid lines
+};
+
+function renderDashboard() {
+    const cranesData = state.items || [];
+    const operatorsData = state.operators || [];
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+const overstayCount = operatorsData.filter(o => {
+        if (o.status === 'Overstay') return true;
+        if (o.leaveTill) {
+            const lt = new Date(o.leaveTill);
+            // If leave end date has passed by more than 10 days
+            return lt <= today && (Math.ceil((today - lt) / (86400000)) > 10);
+        }
+        return false;
+    }).length;
+
+    const opStats = {
+        active: operatorsData.filter(o => o.status === 'Active').length,
+onLeave: operatorsData.filter(o => o.status === 'On Leave').length,
+        idle: operatorsData.filter(o => (o.status||'').toLowerCase().includes('idle')).length,
+        overstay: overstayCount
+    }
+    // Safety check for TP data
+    const tcTPData = (typeof tpState !== 'undefined') ? tpState.items : [];
+    const opTPData = (typeof otpState !== 'undefined') ? otpState.items : [];
+
+    // --- 1. CALCULATE STATS ---
+    const tcStats = {
+        working: cranesData.filter(c => (c.status||'').toLowerCase().includes('work')).length,
+        idle: cranesData.filter(c => (c.status||'').toLowerCase().includes('idle')).length,
+        maintenance: cranesData.filter(c => (c.status||'').toLowerCase().includes('maint')).length
+    };
+
+  
+
+    // --- 2. RENDER SUMMARY CARDS (Text) ---
+    // We use the THEME colors here for the numbers
+    document.getElementById('craneStatusSummary').innerHTML = `
+        <div class="status-item">Working <span style="color:${THEME.green}">${tcStats.working}</span></div>
+        <div class="status-item">Idle <span style="color:${THEME.yellow}">${tcStats.idle}</span></div>
+        <div class="status-item">Maintenance <span style="color:${THEME.red}">${tcStats.maintenance}</span></div>`;
+
+    document.getElementById('operatorStatusSummary').innerHTML = `
+        <div class="status-item">Active <span style="color:${THEME.green}">${opStats.active}</span></div>
+<div class="status-item">onLeave <span style="color:${THEME.yellow}">${opStats.onLeave}</span></div>
+        <div class="status-item">Idle <span style="color:${THEME.yellow}">${opStats.idle}</span></div>
+        <div class="status-item">Overstay <span style="color:${THEME.red}">${opStats.overstay}</span></div>`;
+
+    document.getElementById('tcThirdPartySummary').innerHTML = `
+        <div class="status-item">Total Certificates <span style="color:${THEME.blue}; font-size:18px;">${tcTPData.length}</span></div>
+        <div class="status-item" style="font-size:12px; color:#888; margin-top:5px;">${new Date().getFullYear()} Records</div>`;
+
+    document.getElementById('opThirdPartySummary').innerHTML = `
+        <div class="status-item">Total Certificates <span style="color:${THEME.blue}; font-size:18px;">${opTPData.length}</span></div>
+        <div class="status-item" style="font-size:12px; color:#888; margin-top:5px;">${new Date().getFullYear()} Records</div>`;
+
+    // --- 3. RENDER CHARTS ---
+    renderCharts(cranesData, opStats, tcTPData, opTPData);
+}
+
+let dashboardCharts = {}; 
+
+function renderCharts(cranesData, opStats, tcTPData, opTPData) {
+    // Destroy old charts to prevent "flickering" or memory leaks
+    Object.values(dashboardCharts).forEach(chart => chart.destroy());
+
+    // --- GLOBAL CHART OPTIONS FOR DARK MODE ---
+    Chart.defaults.color = THEME.text;
+    Chart.defaults.borderColor = THEME.grid;
+
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+
+            legend: { 
+                position: 'bottom', 
+                labels: { padding: 20, usePointStyle: true } 
+            }
+        },
+        layout: { padding: 10 }
+    };
+
+    // --- CHART 1: Cranes Per Site (Bar Chart) ---
+    const siteCounts = {};
+    cranesData.forEach(c => {
+        const s = c.site || 'Unknown';
+        siteCounts[s] = (siteCounts[s] || 0) + 1;
+    });
+
+    dashboardCharts.siteChart = new Chart(document.getElementById('chartCranesPerSite'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(siteCounts),
+            datasets: [{ 
+                label: 'Cranes', 
+                data: Object.values(siteCounts), 
+                backgroundColor: THEME.blue,
+                borderRadius: 4, // Rounded bars
+                barPercentage: 0.6
+            }]
+        },
+        options: {
+            ...commonOptions,
+            plugins: { ...commonOptions.plugins, legend: { display: false } }, // Hide legend for single-color bar
+            scales: {
+                y: { grid: { color: '#333' }, beginAtZero: true },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // --- CHART 2: Operator Status (Doughnut) ---
+    dashboardCharts.opChart = new Chart(document.getElementById('chartOperatorStatus'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Active','onLeave', 'Idle', 'Overstay'],
+            datasets: [{ 
+                data: [opStats.active,opStats.onLeave, opStats.idle, opStats.overstay], 
+                backgroundColor: [THEME.green,THEME.blue, THEME.yellow, THEME.red],
+                borderWidth: 0, // No white borders
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            ...commonOptions,
+            cutout: '65%', // Thinner ring look
+            plugins: {
+                legend: { position: 'right', labels: { color: '#000' } }
+            }
+        }
+    });
+
+    // --- CHART 3: Third Party Validity (Pie) ---
+    const validTP = tcTPData.filter(t => t.status === 'Valid').length;
+    const expiredTP = tcTPData.filter(t => t.status !== 'Valid').length;
+    
+    dashboardCharts.tpChart = new Chart(document.getElementById('chartThirdParty'), {
+        type: 'pie',
+        data: {
+            labels: ['Valid', 'Expiring/Overdue'],
+            datasets: [{ 
+                data: [validTP, expiredTP], 
+                backgroundColor: [THEME.teal, THEME.red],
+                borderWidth: 0 
+            }]
+        },
+        options: commonOptions
+    });
+
+    // --- CHART 4: Crane Types (Polar Area) ---
+    const typeCounts = {};
+    cranesData.forEach(c => {
+        const t = c.type || 'Other';
+        typeCounts[t] = (typeCounts[t] || 0) + 1;
+    });
+    
+    dashboardCharts.typeChart = new Chart(document.getElementById('chartProductivity'), {
+        type: 'polarArea', // Looks cooler than pie for types
+        data: {
+            labels: Object.keys(typeCounts),
+            datasets: [{ 
+                data: Object.values(typeCounts), 
+                backgroundColor: [THEME.purple, THEME.blue, THEME.green, THEME.yellow],
+                borderWidth: 0,
+                opacity: 0.8 
+            }]
+        },
+        options: {
+            ...commonOptions,
+            scales: { r: { grid: { color: '#444' }, ticks: { display: false, backdropColor: 'transparent' } } }
+        }
+    });
+}
+
+/**
+ * Uploads a file to Firebase Storage and returns the Download URL.
+ * Also deletes the old file if an oldUrl is provided.
+ */
+async function uploadFileAndGetUrl(file, folderPath, oldUrl) {
+    if (!file) return null;
+
+    // 1. Delete old file if exists
+    if (oldUrl) {
+        try {
+            const oldRef = firebase.storage().refFromURL(oldUrl);
+            await oldRef.delete();
+            console.log("Old file deleted successfully.");
+        } catch (error) {
+            console.warn("Could not delete old file (maybe it didn't exist):", error);
+        }
+    }
+
+    // 2. Upload new file
+    // Create a unique name: timestamp_filename
+    const uniqueName = Date.now() + '_' + file.name;
+    const storageRef = firebase.storage().ref().child(folderPath + '/' + uniqueName);
+    
+    const snapshot = await storageRef.put(file);
+    const downloadUrl = await snapshot.ref.getDownloadURL();
+    
+    return downloadUrl;
+}
+// ==========================================
+// UNIVERSAL LOG VIEWER (Right-Click Handler)
+// ==========================================
+async function openLogs(collection, queryField, queryValue, title, type) {
+    const modal = document.getElementById('logModal');
+    const headerRow = document.getElementById('logHeaderRow');
+    const tbody = document.getElementById('logTableBody');
+    const loader = document.getElementById('logLoader');
+    
+    document.getElementById('logModalTitle').innerText = title;
+    modal.style.display = 'flex';
+    tbody.innerHTML = '';
+    loader.style.display = 'block';
+
+    // 1. Define Headers based on Type
+    let headers = [];
+    if (type === 'crane') {
+        headers = ['Date/Time', 'Status', 'Site', 'Assigned Operator', 'User', 'Details'];
+    } else if (type === 'operator') {
+        headers = ['Date/Time', 'Action', 'Crane', 'Shift', 'User', 'Details'];
+    } else if (type === 'cert') {
+        headers = ['Date/Time', 'Status', 'Next Due', 'Certificate No', 'User'];
+    }
+
+    headerRow.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+
+    try {
+        // 2. Fetch from Firebase (Ordered by newest first)
+        const snapshot = await db.collection(collection)
+            .where(queryField, "==", queryValue)
+            .orderBy("timestamp", "desc")
+            .limit(50) // Limit to last 50 entries for speed
+            .get();
+
+        loader.style.display = 'none';
+
+        if (snapshot.empty) {
+            tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center; padding:20px;">No logs found.</td></tr>`;
+            return;
+        }
+
+        // 3. Render Rows
+        let html = '';
+        snapshot.forEach(doc => {
+            const d = doc.data();
+            const date = d.timestamp ? new Date(d.timestamp.seconds * 1000).toLocaleString() : '-';
+            const user = d.user || 'System';
+
+            if (type === 'crane') {
+                html += `<tr>
+                    <td>${date}</td>
+                    <td><span class="badge" style="background:${statusColor(d.status)}">${d.status}</span></td>
+                    <td>${d.site || '-'}</td>
+                    <td>${d.operatorName || '-'}</td>
+                    <td>${user}</td>
+                    <td>${d.notes || '-'}</td>
+                </tr>`;
+            } else if (type === 'operator') {
+                 html += `<tr>
+                    <td>${date}</td>
+                    <td>${d.type || d.action || '-'}</td>
+                    <td>${d.craneName || '-'}</td>
+                    <td>${d.Shift || '-'}</td>
+                    <td>${user}</td>
+                    <td>${d.details || '-'}</td>
+                </tr>`;
+            } else if (type === 'cert') {
+                html += `<tr>
+                    <td>${date}</td>
+                    <td>${d.status}</td>
+                    <td>${d.nextDue || '-'}</td>
+                    <td>${d.certNo || '-'}</td>
+                    <td>${user}</td>
+                </tr>`;
+            }
+        });
+        tbody.innerHTML = html;
+
+    } catch (error) {
+        console.error("Error fetching logs:", error);
+        loader.style.display = 'none';
+        tbody.innerHTML = `<tr><td colspan="${headers.length}" style="color:red; text-align:center;">Error loading logs: ${error.message}</td></tr>`;
+    }
+}
+
+
 
 
 </script>
@@ -2681,12 +3654,12 @@ function closeAllPanels() {
         <td style="padding:6px;">Project Ref# :</td>
         <td style="padding:6px; font-weight:600;">{{project}}</td>
     </tr>
-
+const autoAsset = item.assetCode || item.name || "N/A";
     <tr>
         <td style="padding:6px;">Inspection Date :</td>
         <td style="padding:6px; font-weight:600;">{{date}}</td>
         <td style="padding:6px;">Asset# :</td>
-        <td style="padding:6px; font-weight:600;">{{asset}}</td>
+        <td style="padding:6px; font-weight:600;">{{assetCode}}</td>
     </tr>
 
     <tr>
@@ -2874,7 +3847,7 @@ function closeAllPanels() {
         <td style="padding:6px;">Inspection Date :</td>
         <td style="padding:6px; font-weight:600;">{{date}}</td>
         <td style="padding:6px;">Asset# :</td>
-        <td style="padding:6px; font-weight:600;">{{asset}}</td>
+        <td style="padding:6px; font-weight:600;">{{assetCode}}</td>
     </tr>
 
     <tr>
@@ -3065,7 +4038,7 @@ function closeAllPanels() {
         <td style="padding:6px;">Inspection Date :</td>
         <td style="padding:6px; font-weight:600;">{{date}}</td>
         <td style="padding:6px;">Asset# :</td>
-        <td style="padding:6px; font-weight:600;">{{asset}}</td>
+        <td style="padding:6px; font-weight:600;">{{assetCode}}</td>
     </tr>
 
     <tr>
@@ -3350,25 +4323,7 @@ printWindow.document.write('<style>input[type="checkbox"]{accent-color:black;}</
             </body>
         </html>
     `);
-printWindow.document.write(`
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll("tr").forEach(row => {
-        const yes = row.querySelector("td:nth-child(3) input[type='checkbox']");
-        const no  = row.querySelector("td:nth-child(4) input[type='checkbox']");
-        
-        if (yes && no) {
-            yes.addEventListener("change", () => {
-                if (yes.checked) no.checked = false;
-            });
-            no.addEventListener("change", () => {
-                if (no.checked) yes.checked = false;
-            });
-        }
-    });
-});
-<\/script>
-`);
+
 printWindow.document.write('</body></html>');
     printWindow.document.close();
 });
@@ -3449,6 +4404,7 @@ function addOpLog(employeeId, action, details) {
 /* ====================== 
    Alerts & Notifications 
    ====================== */
+let tpPrevStatusMap = {};
 
 let alertConfig = {
     emails: [],
@@ -3480,7 +4436,9 @@ document.getElementById('mobileMenuBtn').onclick = () => {
 };
 // Load settings on startup
 async function loadAlertSettings() {
-    const doc = await db.collection("settings").doc("alerts").get();
+   
+try {
+ const doc = await db.collection("settings").doc("alerts").get();
     if (doc.exists) {
         alertConfig = doc.data();
         // Set Checkboxes
@@ -3491,6 +4449,10 @@ async function loadAlertSettings() {
         document.getElementById('status_idle').checked = alertConfig.weeklyStatus.idle;
         document.getElementById('status_maintenance').checked = alertConfig.weeklyStatus.maintenance;
         renderEmailList();
+    }
+}
+catch (error) {
+        console.error("Error loading alert settings:", error);
     }
 }
 
@@ -3557,7 +4519,7 @@ const nearExpiryDays = 3; // Define 'Near Expiry' threshold
     if (currentHour < 8) {
         console.log("Too early for daily alerts. Waiting until 08:00 UAE time.");
         return;
-    }
+   }
 
     // 2. FETCH PREVIOUS SEND HISTORY FROM FIRESTORE
     // We assume alertConfig is already loaded from db.collection("settings").doc("alerts")
@@ -3572,60 +4534,63 @@ const nearExpiryDays = 3; // Define 'Near Expiry' threshold
     
 
 
-// 1. TOWER CRANE THIRD PARTY ALERTS
 
-if (alertConfig.activeAlerts.tc_expiry) {
+// 1. TOWER CRANE THIRD PARTY ALERTS
+    if (alertConfig.activeAlerts.tc_expiry) {
         const tcSnap = await db.collection("third_party_certs").get();
         tcSnap.forEach(async (doc) => {
             const data = doc.data();
             if (!data.nextDueDate) return;
 
             const dueDate = new Date(data.nextDueDate);
-            const diffDays = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+            const diffDays = Math.ceil((dueDate - uaeTime) / (1000 * 60 * 60 * 24));
             const storageKey = `last_alert_tc_${doc.id}`;
 
-            // Overdue Alert (One time)
+            // CONDITION A: Change from anything to OVERDUE (One time only)
             if (diffDays <= 0 && data.lastAlertStatus !== "overdue") {
                 await sendCertificateEmail(`OVERDUE: Tower Crane ${data.craneName}`, data, "overdue", storageKey);
                 await db.collection("third_party_certs").doc(doc.id).update({ lastAlertStatus: "overdue" });
             } 
-            // Near Expiry Alert (One time)
-            else if (diffDays > 0 && diffDays <= nearExpiryDays && data.lastAlertStatus !== "near_expiry") {
+            // CONDITION B: Change from VALID to NEAR EXPIRY (One time only)
+            else if (diffDays > 0 && diffDays <= nearExpiryDays && !data.lastAlertStatus) {
                 await sendCertificateEmail(`NEAR EXPIRY: Tower Crane ${data.craneName}`, data, "near_expiry", storageKey);
                 await db.collection("third_party_certs").doc(doc.id).update({ lastAlertStatus: "near_expiry" });
             }
-            // Reset status if renewed
+            // RESET: If the certificate is renewed (diffDays > 30), clear the status so alerts can fire again next year
             else if (diffDays > nearExpiryDays && data.lastAlertStatus) {
                 await db.collection("third_party_certs").doc(doc.id).update({ lastAlertStatus: null });
             }
         });
     }
 
-// 2. OPERATOR THIRD PARTY ALERTS
+    // 2. OPERATOR THIRD PARTY ALERTS
     if (alertConfig.activeAlerts.op_expiry) {
-        const opSnap = await db.collection("operator_third_party").get();
+        const opSnap = await db.collection("operator_third_party_certs").get();
         opSnap.forEach(async (doc) => {
             const data = doc.data();
             if (!data.nextDueDate) return;
 
             const dueDate = new Date(data.nextDueDate);
-            const diffDays = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+            const diffDays = Math.ceil((dueDate - uaeTime) / (1000 * 60 * 60 * 24));
             const storageKey = `last_alert_op_tp_${doc.id}`;
 
+            // CONDITION A: One time email for Overdue
             if (diffDays <= 0 && data.lastAlertStatus !== "overdue") {
                 await sendCertificateEmail(`OVERDUE: Operator ${data.employeeName}`, data, "overdue", storageKey);
-                await db.collection("operator_third_party").doc(doc.id).update({ lastAlertStatus: "overdue" });
+                await db.collection("operator_third_party_certs").doc(doc.id).update({ lastAlertStatus: "overdue" });
             } 
-            else if (diffDays > 0 && diffDays <= nearExpiryDays && data.lastAlertStatus !== "near_expiry") {
+            // CONDITION B: One time email for Near Expiry
+            else if (diffDays > 0 && diffDays <= nearExpiryDays && !data.lastAlertStatus) {
                 await sendCertificateEmail(`NEAR EXPIRY: Operator ${data.employeeName}`, data, "near_expiry", storageKey);
-                await db.collection("operator_third_party").doc(doc.id).update({ lastAlertStatus: "near_expiry" });
+                await db.collection("operator_third_party_certs").doc(doc.id).update({ lastAlertStatus: "near_expiry" });
             }
+            // RESET: Clear memory if renewed
             else if (diffDays > nearExpiryDays && data.lastAlertStatus) {
-                await db.collection("operator_third_party").doc(doc.id).update({ lastAlertStatus: null });
+                await db.collection("operator_third_party_certs").doc(doc.id).update({ lastAlertStatus: null });
             }
         });
-    }
-    // --- SECTION 3: OVERSTAY EMAIL ---
+    }    
+// --- SECTION 3: OVERSTAY EMAIL ---
 if (alertConfig.lastSentDateOverstay !== todayDate && alertConfig.activeAlerts.op_overstay) {
     let overstayData = [];
     state.operators.forEach(op => {
@@ -3637,35 +4602,48 @@ if (alertConfig.lastSentDateOverstay !== todayDate && alertConfig.activeAlerts.o
             const reason = isDateOverstay ? "Exceeded Return Date" : (daysAway > 180 ? "Away > 180 Days" : "Status: Overstay");
             overstayData.push({
                 id: op.employeeId || "N/A",
-                name: op.name,
+                name: op.name + "         ", // Added spaces here
                 reason: reason,
                 days: daysAway
             });
         }
     });
+
     if (overstayData.length > 0) {
+        // --- CHANGE START: Convert objects to readable text ---
+        let overstayText = "OPERATOR OVERSTAY REPORT\n" + "=".repeat(30) + "\n\n";
+        overstayData.forEach(item => {
+            overstayText += `• ${item.name} (${item.id}) - Reason: ${item.reason} (${item.days} days)\n`;
+        });
+        // --- CHANGE END ---
+
         const subject = `⚠️ OVERSTAY REPORT - ${todayDate}`;
-        sendSeparatedEmail(recipientList, subject, overstayData, "Overstay Alert", "#ef4444", "lastSentDateOverstay", todayDate);
+        // Pass 'overstayText' instead of the 'overstayData' object
+        sendSeparatedEmail(recipientList, subject, overstayText, "lastSentDateOverstay", todayDate);
     }
 }
-   // --- SECTION 4: IDLE EMAIL ---
-    if (alertConfig.lastSentDateIdle !== todayDate) {
-        let idleContent = "TCMS OPERATOR IDLE REPORT\n" + "=".repeat(30) + "\n\n";
-        let idleFound = false;
 
-        state.operators.forEach(op => {
-            const statusLower = (op.status || "").toLowerCase();
-            if (statusLower.includes("idle")) {
-                const daysAway = calculateDaysAway(op.leaveSince);
-                idleContent += `• IDLE: ${op.name} (${op.employeeId}) - Currently ${op.status} (${daysAway} days away)\n`;
-                idleFound = true;
-            }
-        });
+// --- SECTION 4: IDLE EMAIL ---
+if (alertConfig.lastSentDateIdle !== todayDate) {
+    let idleContent = "TCMS OPERATOR IDLE REPORT\n" + "=".repeat(30) + "\n\n";
+    let idleFound = false;
 
-        if (idleFound) {
-            sendSeparatedEmail(recipientList, `DAILY IDLE OPERATOR REPORT - ${todayDate}`, idleContent, "lastSentDateIdle", todayDate);
+    state.operators.forEach(op => {
+        const statusLower = (op.status || "").toLowerCase();
+        if (statusLower.includes("idle")) {
+            // Logic check: If leaveSince is empty, it defaults to 0. 
+            // Ensure leaveSince is updated in your database when an operator becomes idle.
+            const daysAway = calculateDaysAway(op.leaveSince);
+            idleContent += `• IDLE: ${op.name} (${op.employeeId}) - Currently ${op.status} (${daysAway} days away)\n`;
+            idleFound = true;
         }
+    });
+
+    if (idleFound) {
+        sendSeparatedEmail(recipientList, `DAILY IDLE OPERATOR REPORT - ${todayDate}`, idleContent, "lastSentDateIdle", todayDate);
     }
+}
+
 }
 
 // Helper function to send email and update Firestore
@@ -3690,32 +4668,22 @@ async function sendSeparatedEmail(to, subject, message, storageKey, dateValue) {
     }
 }
 
-async function sendCertificateEmail(subject, data, statusType, storageKey) {
-    const recipients = alertConfig.emails.join(",");
-    const message = `
-        Certificate Alert: ${subject}
-        Name: ${data.craneName || data.employeeName}
-        Cert No: ${data.certificateNo}
-        Due Date: ${data.nextDueDate}
-        Status: ${statusType.toUpperCase()}
-    `;
-
-    try {
-        await emailjs.send("service_tcms", "template_alerts", {
-            to_email: recipients,
-            subject: subject,
-            message: message
-        });
-
-        // Record the date to avoid repeat emails until the next cycle/status change
-        await db.collection("settings").doc("alerts").update({
-            [storageKey]: new Date().toISOString()
-        });
-        console.log(`Alert sent for ${subject}`);
-    } catch (err) {
-        console.error("Email failed:", err);
-    }
+function sendThirdPartyExpiryEmail(cert) {
+    emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID, {
+        certificate_no: cert.certificateNo,
+        crane_name: cert.craneName,
+        status: cert.status,
+        due_date: cert.nextDueDate
+    })
+    .then((res) => {
+        console.log("Third-party certificate email sent", res.status);
+    })
+    .catch((err) => {
+        console.error("EmailJS Error:", err);
+    });
 }
+
+
 // Update your save function to also trigger a check if desired
 async function saveAlertSettings() {
     alertConfig.activeAlerts = {
